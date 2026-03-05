@@ -1,0 +1,949 @@
+Title: Physics informed learning of orthogonal features with applications in solving partial differential equations
+
+URL Source: https://arxiv.org/pdf/2602.03247v1
+
+Published Time: Wed, 04 Feb 2026 01:59:36 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+> Received: Added at production Revised: Added at production Accepted: Added at production DOI: xxx/xxxx
+
+R E S E A R C H A R T I C L E 
+
+# Physics informed learning of orthogonal features with applications in solving partial differential equations 
+
+## Qianxing Jia 1 Dong Wang 1,2,3 
+
+> 1School of Science and Engineering, The Chinese University of Hong Kong (Shenzhen), Guangdong, 518172, China
+> 2Shenzhen International Center for Industrial and Applied Mathematics, Shenzhen Research Institute of Big Data, Guangdong, 518172, China
+> 3Shenzhen Loop Area Institute, Guangdong, 518048, China
+> Correspondence
+> Dong Wang, School of Science and Engineering, The Chinese University of Hong Kong (Shenzhen), Shenzhen, Guangdong 518172, China. Email: wangdong@cuhk.edu.cn
+
+Abstract 
+
+The random feature method (RFM) constructs approximation spaces by initializing features from generic dis-tributions, which provides universal approximation properties to solve general partial differential equations. However, such standard initializations lack awareness of the underlying physical laws and geometry, which limits approximation. In this work, we propose the Physics-Driven Orthogonal Feature Method (PD-OFM), a framework for constructing feature representations that are explicitly tailored to both the differential opera-tor and the computational domain by pretraining features using physics-informed objectives together with orthogonality regularization. This pretraining strategy yields nearly orthogonal feature bases. We provide both theoretical and empirical evidence that physics-informed pretraining improves the approximation capa-bility of the learned feature space. When employed to solve Helmholtz, Poisson, wave, and Navier–Stokes equations, the proposed method achieves residual errors 2–3 orders of magnitude lower than those of compa-rable methods. Furthermore, the orthogonality regularization improves transferability, enabling pretrained features to generalize effectively across different source terms and domain geometries for the same PDE. 
+
+> K E Y W O R D S
+
+random feature method, physics-informed neural network, orthogonality 
+
+## 1 INTRODUCTION 
+
+The numerical solution of partial differential equations is fundamental to a wide range of disciplines, including heat transfer, fluid dynamics, electromagnetism, and financial modeling. Classical numerical methods including finite element, finite difference, and spectral methods are effective for structured domains with well-defined boundary conditions. However, these methods are limited by the curse of dimensionality and require labor-intensive meshing for complex geometries. Physics-informed neural networks (PINN) 1,2,3,4,5 has emerged as an alternative framework for solving PDEs using machine learning. PINN approximates the solution of a PDE using a neural network trained to minimize the residuals of the governing equations. This approach is mesh-free and suitable for high-dimensional problems and irregular domains. Despite these advantages, the ill-conditioned loss landscape of PINNs makes SGD converge slowly and often get stuck in local minima 6. PINNs optimize the mean-squared residuals of PDEs evaluated at randomly sampled collocation points. Alternative approaches employ different loss formulations. Variational methods such as deep Ritz 7 and variational PINN 8,9 reformulate the PDEs via energy principles, often improving stability in high dimensions and reducing the order of differentiation thus reducing the cost of auto-differentiation 10 . Other methods adopt weak formulations, such as the weak adversarial network 11,12 , which has demonstrated robustness for problems with nonsmooth boundary conditions. In terms of architectural innovations, several studies explore modified network structures to improve accuracy. Kolomogorov-Arnold network introduces learnable univariate nonlinearities, allowing for better interpretability and approximation accuracy 13,14,15 . Tensor neural network design the network structure to be a combination of univariate functions for each dimension, which enables accurate quadrature-based integration 16,17,18 . A distinct line of research focuses on decoupling the optimization of the network’s last layer from the rest of the parameters, thereby transforming the originally non-convex optimization problem into a convex one with respect to the last-layer coefficients. By interpreting the neural network as a       
+
+> Journal Name 2026;00:1–22 wileyonlinelibrary.com/journal/ © 2026 Copyright Holder Name 1
+> arXiv:2602.03247v1 [math.NA] 3 Feb 2026 2JIA ET AL .
+
+linear combination of features from hidden layers, one can solve the final-layer coefficients via least squares. This idea has led to two main categories of methods: those using random initialization, such as the local extreme learning machine 19,20,21 , the random feature method 22,23,24 , the randomized neural network 25,26 and TransNet 27,28 , and those using trained neural network, including the subspace neural network 29,30,31 , the Least-Squares VPINN 9, and the Deepoly 32 . The advantage of training over random initialization remains unclear. This work provides both theoretical justification and empirical evidence that training the features, despite higher computational cost, leads to better accuracy. Inspired by classical spectral methods, which benefit from orthogonal basis functions with exponential convergence rates, this paper proposes a novel framework termed PD-OFM, short for physics-driven orthogonal feature method. Our method aims to learn operator-adaptive features that are orthogonal to each other. Penalizing the deviation of the features from orthogonal matrix during training guides the network to construct a nearly orthogonal feature space. After training, PDEs are solved via least-squares projection onto the space spanned by the learned features. Besides, this work introduces a projection error to quantify the distance between the spanned space of the learned features and the eigenspace of the differential operator. The projection error is reduced when orthogonality is regularized during training. Experiments on one-dimensional Poisson problems show that the features of PD-OFM closely approximates the analytical eigenfunctions and achieves high accuracy. Moreover, transferability helps reduce computational cost in repeated PDE solving. In artificial intelligence, it is common to freeze the pretrained feature space and then perform feature extraction or fine-tuning in subsequent tasks 33,34 . This idea has later been successfully applied to solving partial differential equations 27,28,35,36 
+
+and parametric partial differential equations 37,38 . Furthermore, operator learning 39,40,41,42 exhibit transferability, where the learned mappings are applied to new input functions or domains. The proposed PD-OFM also exhibits strong transferability. The pretrained features can also be transferred to solve the same type of PDE with different source terms or on varied domains. The main contributions of this paper are summarized as follows: 
+
+• Theoretical analysis and numerical experiments demonstrate that physics-informed feature training enhances the ap-proximation quality of the learned feature space, leading to improved accuracy in subsequent least-squares solution procedures. 
+
+• An orthogonality-regularized loss is introduced to ensure that the neural network’s penultimate-layer feature matrix yields a set of nearly orthogonal features. 
+
+• Comprehensive numerical experiments compare PD-OFM with random feature method and transferable neural network, highlighting its superior accuracy, stability, and transferability. The remainder of this paper is organized as follows. Sections 2.1–2.2 review random feature method and develop the framework of physics-driven orthogonal feature method. Theoretical insights together with empirical evidence comparing trained and random representation functions are discussed in Section 2.3. The PD-OFM is evaluated using metrics such as projection error and effective rank, as presented in Section 2.4. Section 2.5 explores the transferability of PD-OFM bases across different PDE instances. Numerical evaluations and comparisons with existing approaches are presented in Section 3. 
+
+## 2 PHYSICS-DRIVEN ORTHOGONAL FEATURE METHOD 2.1 Random Feature Method 
+
+The random feature method for solving partial differential equations (PDEs) is built upon: (i) representing the solution of a PDE by a linear combination of random features, and (ii) enforcing the governing equations through the collocation method. The random features are typically constructed using randomly initialized shallow neural networks. Therefore, the method forms a natural integration of classical numerical techniques and modern machine learning approaches. Consider a general PDE of the form 
+
+Lu(x) = f (x), x ∈ Ω,
+
+Bu(x) = g(x), x ∈ ∂Ω,where x = ( x1, · · · , xd)T , and Ω is a bounded and connected domain. The random feature approximation assumes 
+
+u(x) = 
+
+> N
+
+X
+
+> i=1
+
+ci ui(x), PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 3
+
+and determines the coefficients { ci} by minimizing a penalized least-squares loss: 
+
+L(c) = 1
+
+NrNrX
+
+> i=1
+
+Lu(x(i) 
+
+> r
+
+) – f (x(i) 
+
+> r
+
+) 2 + λb
+
+NbNbX
+
+> j=1
+
+Bu(x(j) 
+
+> b
+
+) – g(x(j) 
+
+> b
+
+) 2
+
+, (1) where { x(i) 
+
+> r
+
+} and { x(j) 
+
+> b
+
+} are interior and boundary collocation points, respectively. Although this loss function has the same structure as that in physics-informed neural networks (PINNs), the optimization procedure differs significantly: all random features ui(x) are fixed, and only the coefficients ci are optimized. Consequently, gradient descent is unnecessary, and direct solvers such as linear or nonlinear least squares can be applied: 
+
+c = arg min  
+
+> c
+
+L(c). Each random feature typically takes the form 
+
+ui(x) = σ(wix + bi), where the parameters ( wi, bi) are sampled according to standard neural network initialization schemes such as uniform, Xavier, or Kaiming initialization 43,44 . This corresponds to a shallow neural network in which only the output layer is trainable. Moreover, PDE solutions often exhibit strong local structures, and globally defined random features with standard neural initializations may lack sufficient approximation capability. To address this limitation, the random feature method introduces locally supported features through a partition of unity (PoU). To construct the PoU, a set of points { xn}Mp 
+
+> n=1
+
+⊂ Ω are sampled, serving as the center of a component in the partition. For each n, the normalized coordinate is constructed: 
+
+˜xn = 1
+
+rn
+
+(x – xn), n = 1, · · · , Mp,where rn is preselected. When d = 1, the PoU function is either of 
+
+ψan (x) = I–1 ≤˜x<1 ,
+
+ψbn (x) = 
+
+
+
+1 + sin(2 π˜x)2 , – 54 ≤ ˜x < – 34 ,1, – 34 ≤ ˜x < 34 ,1 – sin(2 π˜x)2 , 34 ≤ ˜x < 54 ,0, otherwise. High-dimensional PoU is constructed using the tensor porduct of one-dimensional PoU functions ψn(x) = Πdk=1 ψn(xk). Putting together, the solution of the PDE takes form: 
+
+uM (x) = 
+
+> Mp
+
+X
+
+> n=1
+
+ψn(x)
+
+> Jn
+
+X
+
+> j=1
+
+cnj unj (˜xj). For the multiscale problem, the approximation incorporates both global and local components: 
+
+uM (x) = 
+
+> N
+
+X
+
+> i=1
+
+cgi ugi (x) + 
+
+> Mp
+
+X
+
+> n=1
+
+ψn(x)
+
+> Jn
+
+X
+
+> j=1
+
+cnj unj (˜xj). The random feature method is undoubtedly a powerful tool that has demonstrated remarkable success in solving a broad class of PDEs, including those with complex geometries, kinetic formulations, and multiscale structures. Despite its advantages, several important challenges remain. First, although the random feature method reformulates PDEs into linear systems, the resulting matrices are frequently severely ill-conditioned, with condition numbers reaching as large as 10 16 . Such ill-conditioning significantly degrades the performance of iterative solvers. Even though the size of linear systems considered in the original studies were relatively small, reducing the 4 JIA ET AL .
+
+condition number is essential for extending the method to larger-scale problems. Recent work by Chen and Tan 22 introduces randomized preconditioners to address this issue, while Shang et al. 26,45 adopts a Petrov-Galerkin and discontinuous Galerkin formulation rather than the standard collocation approach to improve stability. A second challenge lies in the initialization of random features. The ideas of utilizing neural network initialization techniques to initialize features were first brought about by Dong 19,20,46 . Thereafter, many literature focus on the initialization of features including Random feature method. Moreover, TransNet 28 introduces a more uniformly distributed initialization across the physical domain. Other approaches incorporate feature pretraining in order to be adaptive to different PDEs, including the subspace neural network 31 , the adaptive neural subspace method 29 , and Deepoly 32 . Importantly, these two challenges are not mutually exclusive. In this work, we propose a framework that pretrains random features in a physics-informed manner, supplemented with orthogonality regularization, thereby simultaneously improving feature quality and alleviating ill-conditioning. 
+
+## 2.2 Pretraining Features with Orthogonality Regularization 
+
+A modified fully-connected neural network architecture is adopted, as illustrated in Figure 1. The network maps an input physical coordinate x = ( x1, x2, . . . , xd) ∈ Ω through a sequence of hidden layers. The network contains an intermediate feature space. The number of neurons, denoted by m is treated as a hyperparameter controlling the number of features. The network produces two distinct outputs: the feature space layer outputs 
+
+U(x; θ) = [ u1(x; θ), u2(x; θ), · · · , um(x; θ)] T ∈ Rm
+
+and the final solution u(x; θ) = Pmi=1 ciui(x; θ), where ci is the coefficent of the last layer without bias. This output allows explicit regularization applied to the feature space layer. Input xu1(x) Hidden Layers u2(x) u3(x) u m (x) u m-1 (x) Output 
+
+u(x;θ) 
+
+Regularize the orthogonality of the features 
+
+Penalize the physics loss from PDEs 
+
+Loss = L pde + λ·L orth     
+
+> F I G U R E 1 The network has two parallel output branches: one predicts the solution u(x;θ), and the other outputs the feature space (green nodes). PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 5
+
+The pretraining procedure is simultaneously minimizes all weights and biases by gradient descent with respect to the PDE loss and orthogonality regularizations: 
+
+LPINN = 1
+
+NrNrX
+
+> i=1
+
+Lu(x(i) 
+
+> r
+
+; θ) – f (x(i) 
+
+> r
+
+) 2 + 1
+
+NbNbX
+
+> j=1
+
+Bu(x(j) 
+
+> b
+
+; θ) – g(x(j) 
+
+> b
+
+) 2
+
+Lorth = U⊤U – I 2
+
+> F
+
+Ltotal = LPINN + λorth · L orth .(2) 
+
+Algorithm 1 PD-OFM: physics-driven orthogonal feature method 
+
+Require: Differential operator L, boundary operator B, source function f , boundary data g, collocation points {x(i) 
+
+> r
+
+} and {x(j) 
+
+> b
+
+}, tolerance ε
+
+Ensure: Approximate solution u(x) 
+
+> 1:
+
+Initialize neural network u(x; θ) with feature space layer of width m 
+
+> 2:
+
+repeat  
+
+> 3:
+
+Sample interior and boundary collocation points  
+
+> 4:
+
+Evaluate total loss: Ltotal = LPDE + λorth · L orth 5: Update parameters ϕ via gradient descent  
+
+> 6:
+
+until Ltotal < ε or convergence  
+
+> 7:
+
+Freeze feature space layer output U(x) = [ u1(x), . . . , um(x)] T 
+
+> 8:
+
+Form system matrix A by evaluating Luj(x(i) 
+
+> r
+
+) and Buj(x(j) 
+
+> b
+
+) at all collocation points  
+
+> 9:
+
+Assemble right-hand side b using f (x(i) 
+
+> r
+
+) and g(x(j) 
+
+> b
+
+) 
+
+> 10:
+
+Solve the least-squares problem: c∗ = arg min c ∥Ac – b∥22 
+
+> 11:
+
+return Approximate solution u(x) = U(x)⊤c∗
+
+Remark 1. When λorth = 0, Algorithm 1 reduces to the PD-FM (physics-driven feature method), which is equivalent to performing a re-optimization of the final linear coefficients after PINN training. The motivation of PD-OFM stems from an intrinsic limitation of randomly initialized feature spaces in approximating functions with complex spectral content. In particular, when the number of features is small relative to the complexity of the target function, the approximation accuracy of random features deteriorates significantly. To illustrate this limitation, we consider the following one-dimensional function defined on [0, 1]: 
+
+f (x) = sin(2 πx) + sin(3 πx) + sin(4 πx) + sin(20 πx), which contains a mixture of low- and high-frequency components and therefore serves as a challenging test case for low-dimensional approximation spaces. To assess the intrinsic approximation capacity of random features, we project f onto a randomly generated feature space with 20 features via a direct least-squares approximation in the function space. As shown in Fig. 2a, the resulting projection fails to capture the essential structure of the target function. Moreover, Fig. 2b reveals that the optimal coefficients exhibit a highly uneven distribution, with a small subset of features dominating the approximation. In contrast, when the features are pretrained using a supervised loss together with an orthogonality regularization, a markedly different behavior emerges. As illustrated in Fig. 3, the learned features develop oscillatory patterns reminiscent of sinusoidal modes, suggesting that the training procedure induces a more expressive and structured feature space. Correspondingly, the approximation quality improves. As shown in Fig. 4, PD-OFM consistently achieves a faster decay of the relative L2 error with respect to the number of features when compared to the random feature method. This example provides evidence that physics-informed pretraining, coupled with orthogonality regularization, leads to more efficient use of finite-width representations. 6 JIA ET AL .   
+
+> (a) Projection of fonto a random feature space. (b) Distribution of coefficients associated with random fea-tures.
+
+F I G U R E 2 Approximation behavior of random features. The projection relies heavily on a small subset of features, indicating inefficient feature utilization. 
+
+F I G U R E 3 First 10 normalized basis functions learned by PD-OFM. The learned features remain well-distributed and non-degenerate, reflecting effective feature utilization. 
+
+## 2.3 Training Does Matter 
+
+In the preceding sections, the approximation behavior of different feature constructions was examined through static comparisons. The focus is now shifted to a dynamic perspective, with the objective of investigating how approximation ability changes throughout the training process. Earlier examples were formulated as supervised approximation problems, in which approximation quality was evaluated via direct least-squares fitting in the function space. In the context of solving partial differential equations, however, the approximation is governed by an operator-based loss, where the solution is obtained by minimizing the residual of a differential equation rather than matching a target function pointwise. This change in formulation motivates an investigation of training dynamics under operator-constrained settings. As a representative case, the one-dimensional Helmholtz equation is considered: 
+
+∆u – k2u = f , (3) with k = √10, where the source term f is derived from the exact solution 
+
+u(x) = sin 
+
+
+
+3πx + 3π
+
+20 
+
+
+
+cos 
+
+
+
+2πx + π
+
+10 
+
+
+
++ 2. PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 7
+
+F I G U R E 4 Approximation accuracy comparison between PD-OFM and the random feature method (RFM). PD-OFM exhibits consistently faster decay of the relative L2 error as the number of features increases, achieving significantly higher accuracy at larger widths. Throughout this experiment, a fixed neural network architecture is employed, consisting of two hidden layers with 100 neurons. Residual connections 47 are adopted together with the tanh 3(·) activation function 11 . To examine the robustness of the observed training behavior, two widely used initialization strategies are considered: Xavier initialization 44 and Kaiming initialization 43 . 
+
+> F I G U R E 5 Training dynamics comparison between PINN loss and least-squares solution error.
+
+As shown in Fig. 5, a clear correlation is observed between the evolution of the PINN residual loss and the accuracy of the least-squares solution. During the early stages of training, the decrease in the PINN loss is accompanied by a substantial reduction in the least-squares approximation error. As training progresses and the PINN loss approaches a plateau, further improvements in the least-squares solution become marginal, and the approximation error similarly stabilizes. Consistent behavior is observed across different initialization strategies. Without training, Xavier initialization leads to noticeably inferior approximation performance, whereas Kaiming initialization exhibits relatively better behavior. However, after only 100 training epochs, both initialization schemes experience significant improvements, and the discrepancy between them is largely reduced. This observation indicates that the training process progressively refines the feature space, enhancing the approximation capability of the learned features. 
+
+Theorem 1 Let A : L2(Ω) → L2(Ω) be a bounded and stable linear operator, i.e., there exists a constant γ > 0 such that 
+
+∥u∥L2 ≤ γ∥Au ∥L2 , ∀u ∈ L2(Ω). (4) 8 JIA ET AL .
+
+Let u∗ be the exact solution to Au = f , and let uNN be the neural network approximation. Then, 
+
+∥u∗ – uNN ∥L2 ≤ γ∥Au NN – f ∥L2 . (5) 
+
+Proof. Since A is stable, for any v ∈ L2(Ω), we have ∥v∥L2 ≤ γ∥Av ∥L2 . Letting v = u∗ – uNN , and using the linearity of A, we obtain 
+
+∥u∗ – uNN ∥L2 ≤ γ∥A(u∗ – uNN )∥L2 = γ∥f – Au NN ∥L2 . (6) When the PINN loss is sufficiently small, the bound indicates that the error between the neural network approximation 
+
+uNN and the exact solution u∗ is also small. This suggests that the feature space learned by the network is capable of closely approximating the solution. Based on this feature space, a least-squares post-processing step can improve the solution accuracy. 
+
+## 2.4 Why Orthogonality Matters: Structural Properties of the Feature Space 
+
+While a low PINN training loss indicates that the network approximates the solution of a specific instance well, it does not guarantee the quality of the underlying feature space. To understand why PD-OFM outperforms standard methods, we must examine the structural properties of the learned basis functions. In classical spectral and Galerkin methods, the orthogonality of the basis is crucial for maximizing the approximation capacity of a subspace of fixed dimension and for ensuring the numerical stability of the linear solver. Motivated by this, we investigate three key metrics: effective rank , orthogonality , and 
+
+projection error . Our hypothesis is that orthogonality regularization forces the neural network to span a larger feature space, preventing feature collapse where multiple neurons learn redundant representations 48 . To quantify these properties, we consider the benchmark one-dimensional Poisson equation: 
+
+
+
+– d2u(x)
+
+dx 2 = 1, x ∈ (–1, 1), 
+
+u(–1) = u(1) = 0. (7) The analytical eigenfunctions of the Dirichlet Laplacian on (–1, 1), ϕk(x) = sin   kπ(x+1) 2
+
+, form a complete orthogonal basis. This allows us to directly measure the discrepancy between the learned feature space and the optimal spectral basis. We introduce the following definitions to quantify the quality of the feature space. 
+
+Definition 1. For a neural network u(x; θ) with feature layer output { uj(x)} mj=1 , the associated Gram matrix Mu ∈ Rm×m is defined as ( Mu)ij = R 
+
+> Ω
+
+ui(x)uj(x) dx . The ϵ-effective rank of the feature space is defined as: 
+
+rϵ(Mu) := {λk(Mu) : λk(Mu) > ϵ} ,where λk are the eigenvalues of Mu.Yang et al. 49 proposed the effective rank as a robust measure of the linear independence of basis functions, filtering out numerical noise. A higher effective rank implies that the network utilizes its width more efficiently. To measure how well the learned space captures the true physics, we define the Projection Error .
+
+Definition 2. The projection error quantifies the ability of the learned features U(x) to represent the true eigenfunctions { ϕk(x)}. For the k-th eigenfunction, the relative projection error is: 
+
+ϵproj  
+
+> k
+
+= ∥P U ϕk – ϕk∥2
+
+∥ϕk∥2
+
+, where PU ϕk = U(U⊤U)–1 U⊤ϕk is the orthogonal projection. The average projection error is computed over the first M1 dominant eigenfunctions: ϵproj = 1
+
+> M1
+
+PM1 
+
+> k=1
+
+ϵproj  
+
+> k
+
+.This metric is rooted in the concept of Kolmogorov n-width 50 , where the first k eigenfunctions span the optimal approximation subspace. We compare two models (with and without orthogonality regularization λorth = 0.1) trained under identical conditions using a ResNet architecture. Figure 6 illustrates the evolution of these metrics: 
+
+• Effective Rank (6a) : The regularized model maintains a significantly higher rank, indicating that more neurons are contributing unique information. PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 9
+
+• Orthogonality (6b) : The loss term effectively drives the feature covariance towards identity. 
+
+• Projection Error (6c) : Crucially, the regularized features yield lower projection errors, meaning they spontaneously align better with the dominant eigenfunctions of the differential operator. 
+
+(a) Effective rank (b) Orthogonality loss (c) Projection error 
+
+F I G U R E 6 Evolution of feature space quality metrics during training. PD-OFM (orange) learns a higher-rank, more orthogonal, and more physically aligned basis compared to PD-FM (blue).  
+
+> F I G U R E 7 Singular value spectrum of the feature Gram matrix. PD-OFM exhibits a much slower decay rate than PD-FM.
+
+## 2.4.1 Spectrum and Conditioning 
+
+Figure 7 presents the singular value spectrum of the feature Gram matrix. A key observation is that the singular values of PD-OFM decay much more slowly than those of PD-FM. While this does not yield a perfectly conditioned system (condition number = 1)—as the compactness of the inverse differential operator inevitably drives eigenvalues to zero—it significantly mitigates the severity of ill-conditioning. The spectrum remains flat for a larger number of indices before decaying. This slower decay implies that the system matrix in the least-squares step is numerically more stable. 10 JIA ET AL .
+
+F I G U R E 8 Relative L2 error versus the number of features. The comparison reveals two advantages: (1) Training (PD-FM/OFM) outperforms random initialization (RFM); (2) Orthogonality (PD-OFM) further improves efficiency over standard training (PD-FM). 
+
+## 2.4.2 Approximation Efficiency 
+
+The impact of these structural properties on final accuracy is shown in Figure 8, where we analyze the relative L2 error as a function with respect to number of features. This result conveys two distinct layers of improvement: 1. Training vs. Random Initialization : Both PD-FM and PD-OFM significantly outperform RFM. This confirms that physics-informed training successfully adapts the features to the specific operator, whereas random features may lack the necessary frequency components. 2. Orthogonality vs. Standard Training : PD-OFM consistently achieves lower errors than PD-FM for the same number of features. This validates that orthogonality reduces redundancy; each added feature in PD-OFM contributes approximation power, whereas standard training suffers from diminishing returns due to feature correlation. 
+
+Remark 2. Computational Complexity. The overhead of orthogonality regularization is negligible. Let the network have L layers of width m and batch size n. Computing the regularization term involves matrix multiplications of cost O(nm 2). In contrast, the physics loss requires computing the Laplacian via reverse-mode automatic differentiation. For a problem in d dimensions, this scales as O(d · nLm 2) in the dominant term. Since typically d, L ≥ 2, the gradient computation for the PDE residual dominates the cost, making the orthogonality constraint computationally free in relative terms. 
+
+## 2.5 Efficiency via Feature Transferability across Geometries 
+
+The analysis in the previous section demonstrates that orthogonality regularization encourages the learned feature space to align with the spectral structure of the differential operator. Consequently, the pretrained features approximate the intrinsic eigenspace of the operator rather than overfitting to a specific solution instance. This property is pivotal for computational efficiency : it allows us to decouple the feature learning phase from the solution finding phase. Once a set of operator-adaptive features is learned, it can be reused as a universal basis to solve a wide class of problems sharing the same governing operator, significantly reducing the marginal cost of solving subsequent instances. To validate this efficiency, we propose a transfer learning framework where features are pretrained on a simple canonical domain and subsequently transferred to solve problems with varying source terms and, notably, different geometries. Consider the two-dimensional Poisson equation defined on a standard square domain 
+
+Ωbase = [–1, 1] 2:– ∂2u
+
+∂x2 – ∂2u
+
+∂y2 = f , (x, y) ∈ Ωbase , u|∂Ωbase = 0. (8) PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 11 
+
+A feature set { ui(x, y)} mi=1 is obtained by training PD-OFM on this base problem. These features are then frozen and transferred to solve new instances. 
+
+## 2.5.1 Transfer across Source Terms 
+
+We first evaluate the robustness of the features against variations in the source term f (x, y). We construct a test dataset of 1000 randomized smooth solutions { u(j)}1000  
+
+> j=1
+
+generated by linear combinations of K Gaussian kernels with random covariance structures: 
+
+u(j)(x, y) = 
+
+> K
+
+X
+
+> k=1
+
+c(j) 
+
+> k
+
+exp 
+
+
+
+– 12 x⊤ 
+
+> k
+
+(Σ(j) 
+
+> k
+
+)–1 xk
+
+
+
+, xk =
+
+"
+
+x – μ(j)
+
+> x,k
+
+y – μ(j)
+
+> y,k
+
+#
+
+. (9) The coefficients are sampled as c(j) 
+
+> k
+
+∼ N (0, 1). The center vectors μ(j) 
+
+> k
+
+and the covariance matrices Σ(j) 
+
+> k
+
+are constructed as follows: 
+
+μ(j) 
+
+> k
+
+=
+
+"
+
+μ(j)
+
+> x,k
+
+μ(j)
+
+> y,k
+
+#
+
+, with μ(j)
+
+> x,k
+
+, μ(j) 
+
+> y,k
+
+∼ U [–1, 1], (10) 
+
+Σ(j) 
+
+> k
+
+=
+
+ σ2 
+
+> x,k
+
+ρkσx,kσy,k
+
+ρkσx,kσy,k σ2
+
+> y,k
+
+
+
+. (11) Here, the shape parameters are sampled uniformly as σx,k, σy,k ∼ U [0.1, 0.5] and the correlation coefficient is ρk ∼ U [–0.5, 0.5]. The corresponding source terms fj are derived analytically. 
+
+## 2.5.2 Transfer across Geometries 
+
+A more challenging scenario involves transferring features to different geometric domains. Since different geometries impose different boundary conditions and imply different spectral bases, this test assesses whether the features learned on the superset domain Ωbase typically capture the necessary frequency components to represent solutions on subsets. We transfer the features trained on the Square domain to an Annulus domain and an L-shape domain. For both scenarios, the approximate solution for the j-th instance is reconstructed via a computationally inexpensive least-squares fitting: 
+
+ˆu(j)(x, y) = 
+
+> m
+
+X
+
+> i=1
+
+cj,iui(x, y), (12) where only the linear coefficients cj,i are re-computed to satisfy the PDE and boundary constraints of the new instance. The approximation quality is measured by the relative L2 error: Err j = ∥ˆu(j) – u(j)∥L2
+
+∥u(j)∥L2
+
+. (13) Table 1 summarizes the average relative errors. PD-OFM achieves errors that are 1-2 orders of magnitude lower than the baseline PD-FM across all domains. Notably, the features generalize well even to the L-shape and Annulus domains without any fine-tuning of the neural network weights. This confirms that orthogonality regularization produces a robust, operator-adaptive basis that supports efficient solving of multi-geometry problems, offering a significant advantage over methods that require retraining for every geometric variation. 
+
+T A B L E 1 Efficiency validation: Average relative L2 errors under source term and domain transfer. Features trained on a square domain by PD-OFM generalize significantly better than PD-FM.                                                
+
+> Source Term Model Square L-shape Annular
+> 2π2sin( πx) sin( πy)PD-OFM 2.35 ×10 –8 1.13 ×10 –9 2.92 ×10 –9
+> PD-FM 2.92 ×10 –7 1.06 ×10 –8 2.80 ×10 –7
+> (1 – x2)(1 – y2)PD-OFM 2.35 ×10 –8 8.32 ×10 –8 5.84 ×10 –10
+> PD-FM 2.12 ×10 –7 2.15 ×10 –6 9.02 ×10 –8 12 JIA ET AL .
+
+Unlike one-shot transfer learning approaches that require joint training on multiple physics instances, PD-OFM constructs a transferable basis from a single PDE instance. Detailed comparisons of different network depths and widths are provided in Appendix B (Tables B1–B3). 
+
+## 3 NUMERICAL EXPERIMENTS 
+
+A series of numerical experiments on different PDEs is conducted to further show the performance of PD-OFM, including linear, nonlinear, time-dependent, and multidimensional problems. The test cases also include domains ranging from simple intervals to complex geometries such as annuli and L-shaped regions. The goal is to evaluate accuracy and efficiency of PD-OFM, in comparison with several existing approaches, including the random feature method and the TransNet. Two standard error metrics: the relative L2 error and the maximum pointwise L∞ error are computed over a set of uniformly sampled test points: 
+
+∥e∥L2 =
+
+s PNi=1 |uθ (xi) – u∗(xi)| 2
+
+PNi=1 |u∗(xi)| 2 ,
+
+∥e∥L∞ = max  
+
+> 1≤i≤N
+
+|uθ (xi) – u∗(xi)|. (14) The effective rank and condition number of the system matrix encountered in the least-squares step are also recorded, which reflect the feature space’s expressiveness and numerical stability. 
+
+## 3.1 Benchmark on a Standard Problem: Helmholtz Equation 
+
+The one-dimensional Helmholtz equation is first considered: 
+
+
+
+d2udx 2 – λu(x) = f (x), x ∈ (0, 2), 
+
+u(0) = h1, u(2) = h2.(15) 
+
+λ = 10 and f (x) is chosen such that the analytical solution is 
+
+u∗(x) = sin 
+
+
+
+3πx + 3π
+
+20 
+
+
+
+cos 
+
+
+
+2πx + π
+
+10 
+
+
+
++ 2. (16) All models construct the solution as a linear combination of 100 features, corresponding to the width of the final hidden layer or the number of random features. For PD-OFM, the fully connected neural networks with tanh 3 activation functions is applied, trained using the Adam optimizer with initial learning rate 0.001 and a maximum of 1000 steps. The training is terminated early if the total loss falls below ε = 10 –3 of initial loss. For PD-OFM, the orthogonality regularization strength is set to λorth = 1. Interior collocation points are randomly sampled with a batch size of 1000 at each iteration, and two fixed points are used to impose Dirichlet boundary conditions at the domain endpoints. The test set contains 2000 equispaced sampled points over the domain. The results are shown in Table 2 and Figure 9, where the proposed method reaches 10 –13 accuracy.                               
+
+> Method LS Residual Rel. L2Error
+> PD-OFM 6.85 ×10 –10 3.98 ×10 –13
+> PD-FM 5.83 ×10 –7 1.38 ×10 –9
+> RFM 1.01 ×10 –5 9.64 ×10 –9
+> TransNet 1.00 ×10 –2 1.43 ×10 –3
+> T A B L E 2 Comparison of methods on the 1D Helmholtz equation. Errors are evaluated on 2000 uniformly spaced test points. PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 13
+
+(a) PD-OFM (b) PD-FM 
+
+(c) RFM (d) TransNet  
+
+> F I G U R E 9 Pointwise absolute errors for different methods on the 1D Helmholtz equation.
+
+## 3.2 Evaluating Complex Geometries: Poisson Equation on Irregular Domains 
+
+The Poisson equation in two dimensions are considered: 
+
+(–∆u(x, y) = f (x, y), (x, y) ∈ Ω,
+
+u|∂Ω = g(x, y). (17) To evaluate the robustness of each method with respect to domain geometry, three representative cases are considered: 
+
+• Square domain : Ω1 = [–1, 1] 2
+
+• L-shaped domain : Ω2 = [–1, 1] 2 \ [0, 1] × [0, 1] 
+
+• Annular domain : Ω3 = {( x, y) ∈ R2 | 0.25 ≤ px2 + y2 ≤ 1} All models use 500 features. For PD-OFM, the neural network consists of two hidden layers of width 500 with tanh 3
+
+activations, trained using the Adam optimizer with an initial learning rate of 0.001 and maximum 1000 steps. The training terminates when the total loss drops below ε = 10 –3 . The orthogonality regularization strength is set to λorth = 0.01. In each case, 1024 interior points and 128 boundary points are sampled per iteration. Errors are evaluated on 2500 uniformly spaced test points within the domain. As shown in Table 3 and Figure 10, PD-OFM consistently achieves the highest accuracy across all tested domains. Interestingly, each method exhibits distinct error patterns in their final predictions. In PD-OFM, the error is highly localized and accumulates at a single spatial point. This may be attributed to the orthogonality constraint encouraging globally balanced representations, while subtle local features are neglected. In contrast, the random feature method, despite using smooth partition of unity, shows the largest error at the interfaces between subdomains. This could be due to the inherent asymmetry between interior and boundary constraints in the least-squares formulation, which tends to under-emphasize boundary enforcement. 14 JIA ET AL .                                                                                 
+
+> T A B L E 3 Comparison of four methods on Poisson equation across different domains. Domain Method LS Residual Rel. L2Error Square Domain PD-OFM 2.87 ×10 –7 2.81 ×10 –9
+> PD-FM 7.27 ×10 –7 9.62 ×10 –9
+> RFM 7.83 ×10 –5 1.73 ×10 –5
+> TransNet 1.47 ×10 –5 1.43 ×10 –7
+> L-shaped Domain PD-OFM 4.09 ×10 –8 6.48 ×10 –11
+> PD-FM 5.98 ×10 –7 5.82 ×10 –9
+> RFM 2.88 ×10 –6 2.48 ×10 –6
+> TransNet 1.04 ×10 –6 5.16 ×10 –9
+> Annulus Domain PD-OFM 5.43 ×10 –9 1.29 ×10 –11
+> PD-FM 8.98 ×10 –9 4.13 ×10 –11
+> RFM 4.93 ×10 –6 4.50 ×10 –8
+> TransNet 4.30 ×10 –7 2.23 ×10 –9
+
+## 3.3 Scalability to Higher Dimensions: three-dimensional Poisson Equation on Unit Cube 
+
+Consider the three-dimensional Poisson equation on the domain Ω = [0, 1] 3:
+
+(–∆u(x, y, z) = f (x, y, z), (x, y, z) ∈ Ω,
+
+u(x, y, z) = 0, (x, y, z) ∈ ∂Ω. (18) The exact solution is given by: 
+
+u(x, y, z) = sin ( πx) sin ( πy) sin ( πz) , (19) and the corresponding source term is computed analytically. The network architecture consists of two hidden layers with 600 neurons per layer and residual connections. The feature space layer width is set to 600. The orthogonality regularization strength is λorth = 0.01. A total of 2048 interior collocation points and 6,00 boundary collocation points are used. 
+
+T A B L E 4 Comparison of methods on the three-dimensional Poisson equation. Errors are evaluted on 2700 uniformly spaced test points and taken average over z axis.                             
+
+> Method LS Residual Rel. L2Error
+> PD-OFM 6.89 ×10 –5 1.64 ×10 –5
+> PD-FM 6.37 ×10 –5 1.07 ×10 –4
+> RFM 1.01 ×10 –2 1.38 ×10 –1
+> TransNet 1.42 ×10 –4 2.03 ×10 –4
+
+Table 4 reports the quantitative comparison on the three-dimensional Poisson equation. PD-OFM achieves the lowest least-squares residual and relative L2 error among all methods, with a moderate effective rank. Although RFM attains the highest rank due to the partition of unity, the learned features fails to capture the spectral structure of the PDE, as indicated by its significantly higher residual and projection error. The visualized pointwise absolute errors in Figure 11 confirm that the RFM features, despite its large rank, cannot approximate the solution accurately. The TransNet method shows improved error compared to RFM but remains inferior to PD-OFM. PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 15 
+
+(a) PD-OFM (Box) (b) PD-OFM (L) (c) PD-OFM (A) 
+
+(d) PD-FM (Box) (e) PD-FM (L) (f) PD-FM (A) 
+
+(g) RFM (Box) (h) RFM (L) (i) RFM (A) 
+
+(j) TransNet (Box) (k) TransNet (L) (l) TransNet (A) 
+
+F I G U R E 10 Pointwise absolute errors of different methods (rows) on the two-dimensional Poisson equation across three domains (columns): Box, L-shape, and Annulus. 16 JIA ET AL .
+
+(a) PD-OFM (b) PD-FM 
+
+(c) RFM (d) TransNet  
+
+> F I G U R E 11 Pointwise absolute errors for different methods on the three-dimensional Poisson equation.
+
+## 3.4 Exploring Diverse Boundary Conditions: Wave Equation 
+
+In this third test case, the time-dependent one-dimensional wave equation is considered: 
+
+
+
+∂2u
+
+∂t2 = c ∂2u
+
+∂x2 , x ∈ [0, 1], t ∈ [0, 2], 
+
+u(x, 0) = sin(4 πx), 
+
+∂u
+
+∂t t=0 
+
+= 0, 
+
+u(0, t) = u(1, t), (20) where c = 116 π2 . The exact solution to this equation is given by 
+
+u(x, t) = 12 (sin(4 πx + t) – sin(4 πx – t)). (21) This equation features not only the usual initial conditions (initial displacement and initial velocity), but also a periodic boundary condition. Our method is flexible and can be adapted to different types of boundary conditions. Specifically, the periodic boundary condition is enforced at points {(0, t1), . . . , (0, tn), (1, t1), . . . , (1, tn)}, PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 17 
+
+which lie on the boundaries x = 0 and x = 1 and share the same set of time values { t1, . . . , tn}. The results are shown in Table 5 and Figrue 12. 
+
+Method LS Residual Rel. L2 Error 
+
+PD-OFM 6.45 × 10 –11 1.99 × 10 –6 
+
+PD-FM 1.25 × 10 –11 4.77 × 10 –6 
+
+RFM 1.09 × 10 –6 1.62 × 10 –2 
+
+TransNet 2.75 × 10 –9 4.41 × 10 –3 
+
+T A B L E 5 Comparison of methods on the 1D Wave equation. Errors are evaluated on 2500 uniformly spaced test points. 
+
+(a) PD-OFM (b) PD-FM 
+
+(c) RFM (d) TransNet 
+
+F I G U R E 12 Pointwise absolute errors for different methods on the 1D wave equation. 
+
+As shown in Figure 12, all methods yield larger errors compared to the previous examples. Notably, when the periodic boundary condition is replaced with a Dirichlet boundary condition, the absolute error drops below 1 × 10 –10 . This suggests that the periodic boundary condition introduces an imbalance when combined with the other constraints. Nevertheless, PD-OFM achieves the lowest error among all the tested methods. 18 JIA ET AL .
+
+## 3.5 Nonlinear PDEs: Steady-State Navier–Stokes 
+
+The steady-state incompressible Navier–Stokes equations are considered: 
+
+(u · ∇ u + ∇p – ν∆u = 0, 
+
+∇ · u = 0, (22) where u = ( v1, v2) is the velocity field, p is the pressure, and ν denotes the kinematic viscosity. The Reynolds number is defined as Re = 1/ ν.As a benchmark, the classical Kovasznay flow is adopted, which provides an exact analytical solution to the steady Navier– Stokes equations in two dimensions: 
+
+v1(x1, x2) = 1 – eλx1 cos(2 πx2), (23) 
+
+v2(x1, x2) = λ
+
+2π eλx1 sin(2 πx2), (24) 
+
+p(x1, x2) = 12
+
+ 1 – e2λx1  , (25) where 
+
+λ = 12ν –
+
+r 14ν2 + 4 π2. (26) In this experiment, Re equals 40, corresponding to ν = 0.025. The computational domain is Ω = [–1, 1] 2, and Dirichlet boundary conditions are prescribed by restricting the exact solution to the boundary ∂Ω. To handle the nonlinearity of the Navier–Stokes equations, the Picard iteration is employed. At the k-th iteration, the convective term is linearized using the velocity field from the previous step, uk–1 NN . The loss function minimized at iteration k is: 
+
+L(k) = uk–1 NN · ∇ uk 
+
+> NN
+
++ ∇pk 
+
+> NN
+
+– ν∆uk
+
+> NN
+
+. (27) After 20 steps of Picard iteration, the pointwise absolute error of u, v, p in different methods are shown in Figure 13. 
+
+## 4 DISCUSSION AND FUTURE WORK 
+
+In this section, we provide a critical assessment of the proposed PD-OFM, focusing on its computational implications and the trade-offs between orthogonality and numerical performance. 
+
+## 4.1 Efficiency 
+
+• Regularizing Orthogonality : The cost of computing the orthogonality loss is essentially negligible with respect to calculating PINN-loss, as it scales independently of the PDE’s order and the neural network’s depth. 
+
+• Transferability : Although the RFM benefits from zero-cost initialization, the pre-training cost of PD-OFM is a strategic investment: the learned nearly-orthogonal features exhibit strong transferability. This enables the reuse of discovered features, shifting the paradigm from random initializations to automated feature engineering. 
+
+## 4.2 Accuracy 
+
+• Gap in Theoretical Foundation of the Accuracy : While imposing orthogonality consistently improves numerical accuracy in our experiments, a rigorous theoretical link remains an open question. Our results suggest that regularization expands the effective rank of the feature space (as indicated by the metrics in Section 2.4), but the theoretical mechanism by how this regularization reduces the approximation error needs further investigation. 
+
+• Ill-conditioning : Although PD-OFM decelerates the decay of singular values, the resulting system matrices may still exhibit some degree of ill-conditioning. Total elimination of feature correlation via gradient-based training remains difficult. PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 19 
+
+(a) PD-OFM (u) (b) PD-OFM (v) (c) PD-OFM (p) 
+
+(d) PD-FM (u) (e) PD-FM (v) (f) PD-FM (p) 
+
+(g) RFM (u) (h) RFM (v) (i) RFM (p) 
+
+(j) TransNet (u) (k) TransNet (v) (l) TransNet (p)      
+
+> F I G U R E 13 Pointwise absolute errors of u,v,pacross different methods (rows) for the steady-state Navier–Stokes equation.
+
+## 5 CONCLUSION 
+
+In this work, we introduced Physics-Driven Orthogonal Feature Method, a novel framework that integrates orthogonality regular-ization into PINNs to construct operator-adaptive orthogonal features. PD-OFM discovers features with greater representational capacity and improved transferability. Extensive numerical experiments on a range of PDEs including the Helmholtz, Poisson, Wave, and Navier-Stokes equations consistently demonstrate that PD-OFM significantly outperforms existing methods such 20 JIA ET AL .
+
+as the random feature method 23 and TransNet 28 . Overall, by leveraging orthogonal neural representations, PD-OFM bridges the gap between classical spectral methods and modern machine-learning-based solvers, offering a robust feature-learning framework for PDE applications. 
+
+DATA AVAILABILITY STATEMENT 
+
+The data and source code that support the findings of this study are openly available in the GitHub repository at https: //github.com/kinjonfire/Physics-Driven-Discovery-of-Orthogonal-Features. The code implements the PD-OFM framework and includes scripts to reproduce the numerical experiments presented in the paper. 
+
+FUNDING 
+
+D. Wang was partially supported by the National Natural Science Foundation of China (Grant No. 12422116), Guangdong Basic and Applied Basic Research Foundation (Grant No. 2023A1515012199), Shenzhen Science and Technology Innovation Program (Grant Nos. JCYJ20220530143803007, RCYX20221008092843046), and Hetao Shenzhen-Hong Kong Science and Technology Innovation Cooperation Zone Project (No. HZQSWS-KCCYB-2024016). 
+
+## References 
+
+1. Han J, Jentzen A, E W. Solving high-dimensional partial differential equations using deep learning. Proceedings of the National Academy of Sciences. 2018;115(34):8505-8510. doi: 10.1073/pnas.1718942115 2. Raissi M, Perdikaris P, Karniadakis G. Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. Journal of Computational Physics. 2019;378:686-707. doi: 10.1016/j.jcp.2018.10.045 3. Sirignano J, Spiliopoulos K. DGM: A deep learning algorithm for solving partial differential equations. Journal of Computational Physics. 
+
+2018;375:1339-1364. doi: 10.1016/j.jcp.2018.08.029 4. Sukumar N, Srivastava A. Exact imposition of boundary conditions with distance functions in physics-informed deep neural networks. Computer Methods in Applied Mechanics and Engineering. 2022;389:114333. doi: 10.1016/j.cma.2021.114333 5. Wang S, Yu X, Perdikaris P. When and why PINNs fail to train: A neural tangent kernel perspective. Journal of Computational Physics. 
+
+2022;449:110768. doi: https://doi.org/10.1016/j.jcp.2021.110768 6. Rathore P, Lei W, Frangella Z, Lu L, Udell M. Challenges in Training PINNs: A Loss Landscape Perspective. In: International Machine Learning Society (IMLS). JMLR.org 2024:1715:1–1715:33 7. Yu B, others . The deep Ritz method: a deep learning-based numerical algorithm for solving variational problems. Communications in Mathematics and Statistics. 2018;6(1):1–12. doi: 10.1007/s40304-018-0127-z 8. Kharazmi E, Zhang Z, Karniadakis GE. hp-VPINNs: Variational physics-informed neural networks with domain decomposition. Computer Methods in Applied Mechanics and Engineering. 2021;374:113547. doi: 10.1016/j.cma.2020.113547 9. Uriarte C, Bastidas M, Pardo D, Taylor JM, Rojas S. Optimizing Variational Physics-Informed Neural Networks Using Least Squares. Computers & Mathematics with Applications. 2025;185:76-93. doi: 10.1016/j.camwa.2025.02.022 10. Baydin AG, Pearlmutter BA, Radul AA, Siskind JM. Automatic differentiation in machine learning: a survey. Journal of machine learning research. 
+
+2018;18(153):1–43. 11. Bao G, Wang D, Zou B. WANCO: Weak Adversarial Networks for Constrained Optimization problems. arXiv preprint arXiv:2407.03647; 2024. 12. Zang Y, Bao G, Ye X, Zhou H. Weak adversarial networks for high-dimensional partial differential equations. Journal of Computational Physics. 
+
+2020;411:109409. doi: 10.1016/j.jcp.2020.109409 13. Jacob B, Howard AA, Stinis P. SPIKANs: Separable Physics-Informed Kolmogorov-Arnold Networks. arXiv preprint arXiv:2411.06286; 2024. 14. Liu Z, Wang Y, Vaidya S, et al. KAN: Kolmogorov-Arnold Networks. arXiv preprint arXiv:2404.19756; 2025. 15. Toscano J, Oommen V, Varghese A, others . From PINNs to PIKANs: Recent Advances in Physics-Informed Machine Learning. Machine Learning and Computing in Science and Engineering. 2025;1:15. doi: 10.1007/s44379-025-00015-1 16. Wang T, Hu Z, Kawaguchi K, Zhang Z, Karniadakis GE. Tensor neural networks for high-dimensional Fokker–Planck equations. Neural Networks. 
+
+2025;185:107165. doi: https://doi.org/10.1016/j.neunet.2025.107165 17. Wang Y, Lin Z, Liao Y, others . Solving High-Dimensional Partial Differential Equations Using Tensor Neural Network and A Posteriori Error Estimators. Journal of Scientific Computing. 2024;101(67). doi: 10.1007/s10915-024-02700-4 PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 21 
+
+18. Wang Y, Xie H, Jin P. Tensor Neural Network and Its Numerical Integration. Journal of Computational Mathematics. 2024;42(6):1714–1742. doi: 10.4208/jcm.2307-m2022-0233 19. Dong S, Li Z. Local extreme learning machines and domain decomposition for solving linear and nonlinear partial differential equations. Computer Methods in Applied Mechanics and Engineering. 2021;387:114129. doi: 10.1016/j.cma.2021.114129 20. Dong S, Li Z. A modified batch intrinsic plasticity method for pre-training the random coefficients of extreme learning machines. Journal of Computational Physics. 2021;445:110585. doi: https://doi.org/10.1016/j.jcp.2021.110585 21. Dong S, Yang J. On computing the hyperparameter of extreme learning machines: Algorithm and application to computational PDEs, and comparison with classical and high-order finite elements. Journal of Computational Physics. 2022;463:111290. doi: https://doi.org/10.1016/j.jcp.2022.111290 22. Tan L, Chen J. High-precision randomized preconditioned iterative methods for the random feature method. Journal of Computational and Applied Mathematics. 2026;481:117255. doi: https://doi.org/10.1016/j.cam.2025.117255 23. Chen J, Chi X, E W, Yang Z. Bridging Traditional and Machine Learning-Based Algorithms for Solving PDEs: The Random Feature Method. 
+
+Journal of Machine Learning. 2022;1(3):268–298. doi: 10.4208/jml.220726 24. Liu Y, McCalla SG, Schaeffer H. Random feature models for learning interacting dynamical systems. Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences. 2023;479:20220835. doi: 10.1098/rspa.2022.0835 25. De Ryck T, Mishra S, Shang Y, Wang F. Approximation theory and applications of randomized neural networks for solving high-dimensional PDEs. arXiv preprint arXiv:2501.12145; 2025. 26. Shang Y, Wang F. Randomized Neural Networks with Petrov–Galerkin Methods for Solving Linear Elasticity and Navier–Stokes Equations. 
+
+Journal of Engineering Mechanics. 2024;150(4). doi: 10.1061/JENMDT.EMENG-7463 27. Lu T, Ju L, Zhu L. A multiple transferable neural network method with domain decomposition for elliptic interface problems. Journal of Computational Physics. 2025;530:113902. doi: https://doi.org/10.1016/j.jcp.2025.113902 28. Zhang D, Li Y, Ying S. Trans-Net: A transferable pretrained neural networks based on temporal domain decomposition for solving partial differential equations. Computer Physics Communications. 2024;299:109130. doi: 10.1016/j.cpc.2024.109130 29. Lin Z, Wang Y, Xie H. Adaptive Neural Network Subspace Method for Solving Partial Differential Equations with High Accuracy. arXiv preprint arXiv:2412.02586; 2024. 30. Song H, Sheng Z, Wang D, Lv J. Alternately-optimized SNN method for acoustic scattering problem in unbounded domain. arXiv preprint arXiv:2504.16523; 2025. 31. Xu Z, Sheng Z. Subspace method based on neural networks for solving the partial differential equation. Computers & Mathematics with Applications. 2025;195:109-138. doi: https://doi.org/10.1016/j.camwa.2025.07.001 32. Liu L, Yong H. DeePoly: A High-Order Accuracy Scientific Machine Learning Framework for Function Approximation and Solving PDEs. arXiv preprint arXiv:2409.15818. 2025. doi: 10.13140/RG.2.2.24649.25446 33. Bengio Y. Deep Learning of Representations for Unsupervised and Transfer Learning. In: . 27. International Machine Learning Society (IMLS). PMLR 2012. 34. Pan SJ, Yang Q. A Survey on Transfer Learning. IEEE Transactions on Knowledge and Data Engineering. 2010;22(10):1345-1359. doi: 10.1109/TKDE.2009.191 35. Chakraborty S. Transfer learning based multi-fidelity physics informed deep neural network. Journal of Computational Physics. 2021;426:109942. doi: 10.1016/j.jcp.2020.109942 36. Desai S, Mattheakis M, Joy H, Protopapas P, Roberts SJ. One-Shot Transfer Learning of Physics-Informed Neural Networks. In: International Machine Learning Society (IMLS). 2022. 37. Chen Y, Koohy S. GPT-PINN: Generative Pre-Trained Physics-Informed Neural Networks toward non-intrusive Meta-learning of parametric PDEs. 
+
+Finite Elements in Analysis and Design. 2024;228:104047. doi: https://doi.org/10.1016/j.finel.2023.104047 38. Chen Y, Ji Y, Narayan A, Xu Z. TGPT-PINN: Nonlinear model reduction with transformed GPT-PINNs. Computer Methods in Applied Mechanics and Engineering. 2024;430:117198. doi: https://doi.org/10.1016/j.cma.2024.117198 39. He J, Liu X, Xu J. MgNO: Efficient Parameterization of Linear Operators via Multigrid. In: International Conference on Learning Representations. 2024. 40. Li Z, Kovachki NB, Azizzadenesheli K, et al. Fourier Neural Operator for Parametric Partial Differential Equations. In: International Conference on Learning Representations. 2021. 41. Li Z, Zheng H, Kovachki N, et al. Physics-Informed Neural Operator for Learning Partial Differential Equations. ACM / IMS J. Data Sci.. 2024;1(3). doi: 10.1145/3648506 22 JIA ET AL .
+
+42. Tripura T, Chakraborty S. Wavelet Neural Operator for solving parametric partial differential equations in computational mechanics problems. 
+
+Computer Methods in Applied Mechanics and Engineering. 2023;404:115783. doi: 10.1016/j.cma.2022.115783 43. He K, Zhang X, Ren S, Sun J. Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification. In: IEEE Computer Society. 2015:1026–1034 44. Glorot X, Bengio Y. Understanding the difficulty of training deep feedforward neural networks. In: PMLR. 2010:249–256. 45. Sun J, Dong S, Wang F. Local randomized neural networks with discontinuous Galerkin methods for partial differential equations. Journal of Computational and Applied Mathematics. 2024;445:115830. doi: https://doi.org/10.1016/j.cam.2024.115830 46. Dong S, Yang J. Numerical approximation of partial differential equations by a variable projection method with artificial neural networks. Computer Methods in Applied Mechanics and Engineering. 2022;398:115284. doi: https://doi.org/10.1016/j.cma.2022.115284 47. He K, Zhang X, Ren S, Sun J. Deep Residual Learning for Image Recognition. In: Computer Vision and Pattern Recognition. 2016 48. Zhou H, Qixuan Z, Luo T, Zhang Y, Xu ZQ. Towards Understanding the Condensation of Neural Networks at Initial Training. In: Koyejo S, Mohamed S, Agarwal A, Belgrave D, Cho K, Oh A., eds. Advances in Neural Information Processing Systems . 35. Curran Associates, Inc. 2022:2184–2196. 49. Yang J, Zhao Y, Zhu Q. Effective Rank and the Staircase Phenomenon: New Insights into Neural Network Training Dynamics. arXiv preprint arXiv:2412.05144; 2025. 50. Pinkus A. N-widths in Approximation Theory . 7. Springer Science & Business Media, 2012. 
+
+How to cite this article: Jia Q., and Wang D. (2026), Physics informed learning of orthogonal features with applications in solving partial differential equations, Numerical Methods for Partial Differential Equations, 2026;00:1–20. 
+
+APPENDIX 
+
+## A USING VARIATIONAL LOSS TO SOLVE TWO-DIMENSIONAL POISSON EQUATION ON DIFFERENT DOMAINS 
+
+This appendix studies the effect of using variational loss instead of traditional PINN loss to solve the two-dimensional Poisson equation on three types of domains: box, annulus, and L-shape. The equation is: –∆u(x, y) = f (x, y), (x, y) ∈ Ω (A1) with zero Dirichlet boundary conditions. The variational loss 7 is used: 
+
+Lvar = 12
+
+Z
+
+> Ω
+
+|∇u(x, y)| 2 dx dy –
+
+Z
+
+> Ω
+
+f (x, y)u(x, y) dx dy . (A2) In practice, the variational loss is approximated by: 
+
+Lvar ≈ 12NqNq
+
+X
+
+> i=1
+
+|∇u(xi, yi)| 2 – 1
+
+NqNq
+
+X
+
+> i=1
+
+f (xi, yi)u(xi, yi) (A3) where Nq is the number of quadrature points sampled in the domain. We use the neural network structure: two hidden layers with 500 neurons per layer and tanh 3 activation. The Adam optimizer is used for training. The proposed framework allows flexible design of PDE loss. The loss function is not limited to the classical PINN residual loss (strong form). Variational forms, weighted residual methods, weak forms, or other customized loss functions can also be applied within this structure. This flexibility opens up broad opportunities for future development in neural network-based PDE solvers. 
+
+## B COMPARISON OF TRANSFERABILITY OF PD-OFM AND PD-FM PHYSICS INFORMED LEARNING OF ORTHOGONAL FEATURES 23 
+
+(a) Box domain (b) L-shape domain (c) Annulus domain 
+
+F I G U R E A1 Point-wise absolute error of variational loss solution on different domains. 
+
+T A B L E B1 Experiment 1: Error vs. Width and Depth in Box Domain Transferred Problem. 
+
+Width Depth = 1 Depth = 2 Depth = 3 PD-OFM PD-FM PD-OFM PD-FM PD-OFM PD-FM 100 5.08 × 10 –2 5.13 × 10 –2 3.13 × 10 –2 5.66 × 10 –2 4.40 × 10 –2 6.87 × 10 –2 
+
+200 1.08 × 10 –3 4.51 × 10 –3 4.94 × 10 –4 1.13 × 10 –3 1.13 × 10 –3 1.87 × 10 –3 
+
+300 2.46 × 10 –4 2.49 × 10 –3 2.47 × 10 –5 3.06 × 10 –5 6.64 × 10 –5 4.96 × 10 –5 
+
+400 8.13 × 10 –4 1.98 × 10 –3 6.34 × 10 –7 1.01 × 10 –6 7.66 × 10 –6 7.75 × 10 –7 
+
+500 2.41 × 10 –4 6.28 × 10 –4 2.35 × 10 –8 2.12 × 10 –7 3.40 × 10 –7 7.66 × 10 –8 
+
+600 7.85 × 10 –4 1.17 × 10 –3 2.73 × 10 –8 1.24 × 10 –7 3.16 × 10 –8 1.10 × 10 –8 
+
+T A B L E B2 Experiment 2: Error vs. Width and Depth in L-shape Domain Transferred Problem. 
+
+Width Depth = 1 Depth = 2 Depth = 3 PD-OFM PD-FM PD-OFM PD-FM PD-OFM PD-FM 100 8.64 × 10 –2 1.12 × 10 –1 6.76 × 10 –2 7.61 × 10 –2 8.53 × 10 –2 8.87 × 10 –2 
+
+200 2.83 × 10 –3 1.09 × 10 –2 1.07 × 10 –3 1.98 × 10 –3 1.91 × 10 –3 2.58 × 10 –3 
+
+300 1.34 × 10 –3 4.39 × 10 –3 4.86 × 10 –5 6.97 × 10 –5 1.19 × 10 –4 7.99 × 10 –5 
+
+400 1.29 × 10 –3 4.33 × 10 –3 1.83 × 10 –6 3.74 × 10 –6 1.17 × 10 –5 1.95 × 10 –6 
+
+500 1.13 × 10 –3 3.19 × 10 –3 8.32 × 10 –8 2.15 × 10 –6 5.87 × 10 –7 4.47 × 10 –7 
+
+600 1.29 × 10 –3 2.52 × 10 –3 2.03 × 10 –8 9.30 × 10 –7 3.92 × 10 –8 1.39 × 10 –7 
+
+T A B L E B3 Experiment 3: Error vs. Width and Depth in Annulus Domain Transferred Problem. 
+
+Width Depth = 1 Depth = 2 Depth = 3 PD-OFM PD-FM PD-OFM PD-FM PD-OFM PD-FM 100 1.87 × 10 –2 2.41 × 10 –2 8.02 × 10 –3 1.29 × 10 –2 1.42 × 10 –2 2.11 × 10 –2 
+
+200 2.12 × 10 –4 1.51 × 10 –3 4.96 × 10 –5 1.39 × 10 –4 1.38 × 10 –4 2.82 × 10 –4 
+
+300 7.41 × 10 –5 6.34 × 10 –4 1.43 × 10 –6 2.04 × 10 –6 3.87 × 10 –6 3.65 × 10 –6 
+
+400 7.28 × 10 –5 4.60 × 10 –4 1.99 × 10 –8 7.12 × 10 –8 2.49 × 10 –7 2.93 × 10 –8 
+
+500 8.63 × 10 –5 3.80 × 10 –4 5.84 × 10 –10 9.02 × 10 –8 7.78 × 10 –9 2.41 × 10 –8 
+
+600 8.08 × 10 –5 2.91 × 10 –4 5.62 × 10 –10 3.19 × 10 –8 3.56 × 10 –10 4.11 × 10 –9

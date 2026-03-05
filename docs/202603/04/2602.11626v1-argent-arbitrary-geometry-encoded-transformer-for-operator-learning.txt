@@ -1,0 +1,1107 @@
+Title: ArGEnT: Arbitrary Geometry-encoded Transformer for Operator Learning
+
+URL Source: https://arxiv.org/pdf/2602.11626v1
+
+Published Time: Fri, 13 Feb 2026 01:45:02 GMT
+
+Number of Pages: 69
+
+Markdown Content:
+# ArGEnT: Arbitrary Geometry-encoded Transformer for Operator Learning 
+
+Wenqian Chen a, Yucheng Fu a, ∗, Michael Penwarden b, Pratanu Roy c, Panos Stinis a
+
+> aPacific Northwest National Laboratory, Richland, WA 99352, USA
+> bSandia National Laboratories, Albuquerque, NM 87123, USA
+> cLawrence Livermore National Laboratory, Livermore, CA 94550, USA
+
+Abstract 
+
+Learning solution operators for systems with complex, varying geometries and para-metric physical settings is a central challenge in scientific machine learning. In many-query regimes such as design optimization, control and inverse problems, surrogate modeling must generalize across geometries while allowing flexible evaluation at ar-bitrary spatial locations. In this work, we propose Arbitrary Geometry-encoded Transformer (ArGEnT), a geometry-aware attention-based architecture for opera-tor learning on arbitrary domains. ArGEnT employs Transformer attention mech-anisms to encode geometric information directly from point-cloud representations with three variants—self-attention, cross-attention, and hybrid-attention—that in-corporates different strategies for incorporating geometric features. By integrating ArGEnT into a Deep Operator Network (DeepONet) as the trunk network, we de-velop a surrogate modeling framework capable of learning operator mappings that depend on both geometric and non-geometric inputs without the need to explicitly parametrize geometry as a branch network input. Through evaluation on bench-mark problems spanning fluid dynamics, solid mechanics and electrochemical sys-  
+
+> ∗Corresponding author
+> Email address: yucheng.fu@pnnl.gov (Yucheng Fu )
+
+1
+
+> arXiv:2602.11626v1 [cs.LG] 12 Feb 2026
+
+tems, we demonstrate significantly improved prediction accuracy and generalization performance compared with the standard DeepONet and other existing geometry-aware surrogates. In particular, the cross-attention transformer variant enables ac-curate geometry-conditioned predictions with reduced reliance on signed distance functions. By combining flexible geometry encoding with operator-learning capabil-ities, ArGEnT provides a scalable surrogate modeling framework for optimization, uncertainty quantification, and data-driven modeling of complex physical systems. 
+
+Keywords: Surrogate modeling, Transformer, Deep Operator Network, Arbitrary geometry, Geometry-aware learning 
+
+1. Introduction 
+
+Surrogate modeling has become a fundamental tool for accelerating scientific computation and engineering analysis by providing efficient approximations of com-putationally expensive numerical simulations [1]. By replacing repeated high-fidelity solvers with fast learned evaluations, surrogate models can reduce computational cost by orders of magnitude while enabling real-time prediction, rapid parametric studies, and large-scale optimization. In many practical problems, both the geome-try of the computational domain and the underlying operators governing the physical system vary across problem instances, such as geometry optimization problems gov-erned by fluid flow [2, 3], structural response under varying configurations [4, 5], and multi-physics systems with changing boundary conditions or source terms [6, 7]. Surrogate models that can handle arbitrary geometry and arbitrary operators not only eliminate the need for retraining or remeshing for each new configuration, but also significantly improve data efficiency and scalability by reusing learned represen-tations across diverse scenarios. These computational advantages make such models 2particularly attractive for high-dimensional, many-query applications, where conven-tional numerical solvers become prohibitively expensive. Early neural-network-based surrogate models [8, 9] relied primarily on multilayer perceptrons (MLPs) to approximate mappings between fixed-dimensional inputs and outputs. Although MLPs are universal function approximators [10], their perfor-mance strongly depends on carefully designed parameterizations of geometry and physical inputs. Convolutional neural networks (CNNs) extended this paradigm by exploiting spatial locality and translation invariance, making them effective for sur-rogate modeling on structured grids, such as image-like representations of physical fields. CNN-based surrogates have been widely used in applications such as fluid dynamics[11], heat transfer [12], and porous media flow [13], but their reliance on regular grids limits their ability to directly handle complex or irregular geometries. To move beyond fixed input–output mappings, operator learning approaches have been proposed to learn mappings between function spaces. Deep Operator Networks (DeepONets) [14] employ branch–trunk architectures to represent oper-ators explicitly and have demonstrated strong performance in learning partial dif-ferential equation (PDE) solution operators [15, 16, 17]. Fourier Neural Operators (FNOs) [18] perform convolutions in the spectral domain, enabling the learning of translation-invariant operators on uniform grids. These methods significantly im-prove operator-level generalization, but typically require structured discretizations or geometry encodings[19, 20]. Geometry-aware neural architectures have been developed to better address ar-bitrary and irregular domains. Graph neural networks (GNNs) naturally operate on unstructured meshes and graph representations, making them well suited for surrogate modeling on complex geometries [21, 22]. Point-based networks, such as PointNets [23, 24], or its variant Point-DeepONet[25], directly process point clouds 3without requiring mesh connectivity, providing a flexible representation for irreg-ular domains. Transformer[26]-based models [27, 28, 29], equipped with attention mechanisms, offer a powerful framework for capturing long-range dependencies and integrating geometric information with physical parameters, and have shown strong potential for learning operators across varying geometries. In this work, we propose ArGEnT, an Arbitrary Geometry-encoded Transformer, as a flexible and expressive mechanism for representing and learning complex geo-metric information in surrogate modeling. ArGEnT leverages attention mechanisms to encode geometric structure directly from point-based or implicit representations, enabling robust generalization across irregular domains and varying functional de-pendence. Unlike most existing approaches [27, 28] that rely solely on self-attention for geometric context learning, we design three transformer variants—self-attention, cross-attention, and hybrid-attention—to explore different strategies for incorporat-ing geometric information. Although ArGEnT is architecture-agnostic and can, in principle, be integrated with a broad class of operator-learning or surrogate modeling frameworks, we focus in this study on its integration within the Deep Operator Net-work (DeepONet) paradigm as a representative and well-established baseline. In this setting, ArGEnT serves as a geometry-aware encoding module—implemented here as the trunk network, while the branch network processes any additional non-geometric input parameters. This design enables us to systematically investigate how differ-ent attention-based geometry encodings impact operator learning performance, while also highlighting the broader applicability of ArGEnT beyond any single surrogate modeling architecture. 42. Methodology 
+
+2.1. Arbitrary Geometry-encoded Transformer (ArGEnT) 
+
+For problems involving complex geometries, traditional neural network architec-tures based on MLPs often struggle to represent geometric structure effectively and to capture the resulting geometry-correlated solutions. To address this limitation, we introduce a family of geometry-encoded transformer architectures that leverages the strengths of the attention mechanism to capture intricate geometric features and their influence on the target function. The attention mechanism in the transformer architecture allows the model to learn long-range dependencies and complex relation-ships within the input data. This is particularly beneficial for learning geometry-dependent features, especially when the geometry is hard to parametrize explicitly. Based on how geometric information is incorporated into the attention operation, we categorize the proposed transformer architectures into three variants: self-attention, cross-attention, and the hybrid-attention transformer, as illustrated in Figure 1. In the self-attention transformer as shown in Fig. 1(a), the geometric informa-tion is implicitly encoded within the input data itself. The self-attention mechanism employs the spatial coordinates of a point cloud as well as the associated features (if any) to construct the query (Q), key (K), and value (V) matrices in the attention, as detailed in Appendix A. The distribution of points in the point cloud (usually comes from the simulation data) inherently contains geometric information about the shape and structure of the geometry. Specifically, the input will be organized as a 3-dimensional tensor of shape (batch dimension, point dimension, feature di-mension). The feature dimension includes the spatial coordinates, SDF values, and mask values. The spatial coordinates provide the positional information of each point in the point cloud, while the SDF value is optional to provide additional ge-5Figure 1: Arbitrary Geometry-encoded Transformer (ArGEnT). (a) Two-layer self-attention trans-former; (b) two-layer cross-attention transformer; (c) hybrid-attention transformer composed of one cross-attention layer followed by one self-attention layer. x denotes the input point coordinates; M
+
+is the boolean mask indicating padding points; d represents the signed distance function (SDF) val-ues, where (·) indicates that including SDF inputs are optional. Q, K, and V denote the query, key, and value matrices in the attention mechanism. RoPE denotes Rotary Position Embeddings used to incorporate relative positional information from the input coordinates. MLP refers to multi-layer perceptron layers. ⊕ indicates a residual connection. 
+
+6ometric context. The discussion of using SDF values as extra input features can be found in Appendix F. The mask values are boolean indicators that a point is padding or real data, since the number of points may vary for different geometries, and padding is used to ensure consistent input size across the batch. Before feed-ing the input tensor into the attention layers, we first apply an MLP to project the input features to a higher-dimensional space, where the attention mechanism can handle more complex relationships. The Rotary Position Embeddings (RoPE), as detailed in the Appendix C, are then applied to the query and key matrices to incor-porate relative positional information based on the spatial coordinates. This allows the attention block to explicitly account for geometric distance between points when computing attention scores. The output of each self-attention layer is recursively fed into subsequent self-attention layers, and the output of the final self-attention layer is then processed by additional MLP layers within a residual block to produce the final output. In the cross-attention transformer as shown in Fig. 1(b), geometric information is provided as a separate input, consisting of the spatial coordinates of a fixed point cloud and their corresponding SDF values. The point cloud is randomly sampled once within a finite spatial domain and then kept identical across all cases to elim-inate sampling-induced variations. Consequently, geometric variability is encoded entirely through the SDF field defined on this fixed set of spatial locations. The geometric input is employed to construct the key and value matrices in the attention mechanism, while the main input data (e.g., spatial coordinates and other features) is used to construct the query matrix, as detailed in the Appendix B. This allows the model to process the query data independent of geometric information. This will be particularly useful when we want to predict the target function at arbitrary spatial locations, since the query points can be sampled independently of the geom-7etry. Similar to the self-attention transformer, we first apply MLP layers to project both the query input and the geometric input to higher-dimensional spaces. RoPE is applied to both the query and key matrices to incorporate relative positional in-formation based on the spatial coordinates. The output of each cross-attention layer is recursively fed into subsequent cross-attention layers as the updated query input, and the output of the final cross-attention layer is then processed by additional MLP layers within a residual block to produce the final output. Since the self-attention mechanism captures implicit geometric encoding from the input data distribution, it could potentially learn complex relationships that are not explicitly represented in the geometric input. On the other hand, the cross-attention mechanism provides explicit geometric encoding, which can help the model focus on relevant geometric features when processing the query data. To leverage the strengths of both approaches, we also propose a hybrid-attention transformer archi-tecture that combines self-attention and cross-attention mechanisms. As shown in Fig. 1(c), the hybrid-attention transformer consists of an initial cross-attention layer followed by a self-attention layer. Similar to the cross-attention transformer, the ge-ometric input is used to construct the key and value matrices in the cross-attention layer, while the main input data is used to construct the query matrix. The output of the cross-attention layer is then fed into the self-attention layer, which further processes the data to capture additional relationships and dependencies within the geometric context. This combination allows the model to benefit from both implicit and explicit geometric encoding, potentially leading to improved performance in cap-turing complex geometry-dependent features. Since the hybrid-attention transformer starts with a cross-attention layer, it also allows the query points to be sampled inde-pendently of the geometry representation, similar to the cross-attention transformer. If not specified otherwise the hybrid-attention transformer will share the same input 8setup as the cross-attention transformer. Overall, the learned operator for the ArGEnT models can be expressed as: 
+
+Self-attention G : {˜xi}Ni=1 7 −→{ fi}Ni=1 
+
+Cross-attention G : (˜ x, Ω) 7 −→ f
+
+Hybrid-attention G : ( {˜xi}Ni=1 , Ω) 7 −→{ fi}Ni=1 
+
+(1) where ˜x = ( x, d ) denotes the query points, x ∈ R2 (or R3) the spatial coordinates, d
+
+the optional SDF value, and other features can be appended when needed. Ω denotes the geometry and it is represented as a point cloud Ω := {˜xgi }Mi=1 , where ˜xg = ( xg, d g)
+
+denotes a geometry point with its SDF value. Note that for the self- and hybrid-attention ArGEnT models, the learned operator maps a set of input points to a set of output values, rather than performing a point-wise (point-to-point) mapping as in the cross-attention ArGEnT. This distinction arises because self-attention explicitly exploits the mutual relationships among input points to construct the attention rep-resentation. Consequently, the sampling strategy for the input points can influence the model predictions, an effect that is discussed in more detail in Section 3.1. In contrast, the cross-attention ArGEnT decouples the query points from the geome-try representation, allowing them to be sampled independently and enabling flexible evaluation at arbitrary spatial locations. 
+
+2.2. ArGEnT DeepONet Architecture 
+
+The ArGEnT architecture introduced above is mainly designed to encode com-plex geometric information effectively. However in many engineering problems, the target function not only depends on the geometry but also on other parameters, such as boundary conditions, material properties, and operating conditions. To handle such scenarios, we integrate the ArGEnT architecture with Deep Operator Network 9(DeepONet) framework [14] to create the ArGEnT DeepONet architecture, as shown in Fig. 2. This integration allows us to model complex mappings that depend on both geometric and non-geometric inputs. If there are additional non-geometric in-put parameters, each set of parameters can be processed through a separate branch network, as proposed in the MIONet [30]. 
+
+Figure 2: ArGEnT DeepONet architecture. The ArGEnT model functions as the trunk network, responsible for encoding geometric representations and query information, whereas the branch net-work processes non-geometric input parameters. The final prediction of the target function is obtained by taking the inner product of the trunk and branch outputs. 
+
+The learned operator for the ArGEnT DeepONet can be expressed as: 
+
+Self-attention G : ( {˜xi}Ni=1 , μ μμ) 7 −→ 
+
+ui =
+
+> J
+
+X
+
+> j=1
+
+cj (μμμ) f ji
+
+ {˜xk}Nk=1 
+
+
+
+> Ni=1
+
+Cross-attention G : (˜ x, Ω, μ μμ) 7 −→ u =
+
+> J
+
+X
+
+> j=1
+
+cj (μμμ) f j (˜ x, Ω) 
+
+Hybrid-attention G : ( {˜xi}Ni=1 , Ω, μ μμ) 7 −→ 
+
+ui =
+
+> J
+
+X
+
+> j=1
+
+cj (μμμ) f ji
+
+ {˜xk}Nk=1 , Ω
+
+> Ni=1
+
+(2) 
+
+where J is the output dimension of trunk and branch networks, cj is the jth output of 10 branch network, and f ji is the jth output of trunk network evaluated at the ith point. 
+
+μμμ denotes the non-geometric input parameters processed by the branch network. μμμ
+
+can be physical/operating parameters, boundary/initial conditions represented as functions, or other non-geometric parameters. 
+
+2.3. Training setup 
+
+Since the number of training points can be quite large (sometimes exceeding 100,000), we adopt a mini-batch training strategy. At each training step, a ran-dom subset of 3,000 query points is sampled from the full training set to compute the loss function and update the model parameters. This strategy significantly re-duces memory consumption and improves training efficiency. All models are imple-mented in PyTorch and trained on NVIDIA H100 GPUs. Unless stated otherwise, all transformer-based models are optimized using the Adam optimizer for a total of 100,000 training steps. The learning rate is initialized at 0.001 and decays by a fac-tor of 0.99 every 200 training steps. The mean squared error (MSE) loss function is employed to quantify the discrepancy between the predicted and ground-truth values of the target function during training. It is worth noting that the mini-batch training strategy can degrade the accu-racy of self-attention and hybrid-attention transformers. This degradation arises because the randomly sampled query points in each mini-batch may not follow the same distribution as the full training set, which can adversely affect the self-attention mechanism that relies on global context. Although this issue can be partially miti-gated by increasing the mini-batch size, doing so significantly increases memory con-sumption and computational cost, thereby limiting the scalability of self-attention mechanisms for large-scale problems or complex geometries. In contrast, the cross-attention transformer is largely unaffected by this issue, as query points can be 11 sampled independently of the geometry representation. The size of the point cloud used to represent the geometry can be kept relatively small while still capturing the essential geometric features without incurring excessive computational cost or accu-racy loss. Except for extremely complex geometries—such as porous media or fractal structures, where a larger number of points may be required—this compact represen-tation is sufficient in most practical cases. Throughout this work, we use 2,000–5,000 geometry points to represent the geometry in both the cross-attention and hybrid-attention transformer models, and the full batch of geometry points is used at each training step. This design makes the cross-attention transformer more scalable and computationally efficient for large-scale problems involving complex geometries. Throughout this work, we use the following hyperparameters for all ArGEnT models unless specified otherwise: 4 attention heads, 128-dimensional features in the attention layers. For the pointwise MLP to process the input features, we use 4 hidden layers each with 128 neurons, and ReLU as the activation function. For the output MLP, we use 3 hidden layers each with 128 neurons, and ReLU as the activation function. For other pointwise MLP, we do not use any hidden layers, and only use a single linear layer to project the features to the desired output di-mension, activated with a tanh function. No dropout or regularization is applied during training. The number of transformer layers is set to 2 for both self-attention and cross-attention transformers. For the hybrid-attention transformer, we use one cross-attention layer followed by one self-attention layer. We have experimented with deeper transformer architectures (up to 4 layers) but did not observe significant per-formance improvements, likely due to the relatively small size of the training datasets in our experiments. 12 3. Results and Discussion 
+
+3.1. Airfoil flow 3.1.1. Laminar flow over airfoil of varying shapes 
+
+We consider laminar flow over airfoils with varying airfoil profiles at constant Reynolds number, Mach number, and angle of attack. The dataset, provided by [17], consists of 50 airfoil shapes parametrized by two geometric variables: the maximum camber and the location of maximum camber. The flow conditions are identical for all samples, with a Reynolds number of 500, a Mach number of 0.5, and an angle of attack of 0◦. The flow fields are computed using a high-fidelity CFD solver, and the resulting velocity (u, v ), pressure p, and density ρ fields provide the high-fidelity solutions used to train the models and assess their predictive performance. Further details regarding the dataset generation and numerical setup can be found in [17]. The learned operator for the following airfoil problem, taking the cross-attention ArGEnT as an example, is therefore defined as 
+
+Cross-attention G : (˜ x, Ω) 7 −→ (p, ρ, u, v ) (3) where the definition of ˜x and Ω follows Eq. (1). Following the setup in [17], 40 samples are used for training and 10 samples for testing, and the corresponding airfoil profiles are shown in Figure D.17(a). An ex-ample geometry setup for simulation and training is illustrated in Figure 3(a), where the airfoil chord is fixed along the x-axis from (0 , 0) to (1 , 0) . For training and evaluation, only the region ([ −1, 6] × [−1, 1]) surrounding the airfoil is considered to reduce computational cost. Nevertheless, each case still contains approximately 100,000–150,000 data points. Since non-dimensional governing equations are em-ployed in the CFD simulations, both the spatial coordinates and the flow variables 13 are of O(1) , and no additional normalization is applied. As this problem involves geometric variation only, we employ ArGEnT without a branch network. The four flow variables—pressure p, density ρ, and velocity components u and v—are trained separately using independent model instances to avoid potential interference among variables. For the self-attention ArGEnT model, the input consists of the spatial coordinates together with their corresponding SDF values, as illustrated in Fig. 3(c). In contrast, the cross-attention and hybrid-attention ArGEnT models adopt a decoupled sam-pling strategy for building the attention matrices. Specifically, 3000 geometry points are randomly sampled in the vicinity of the airfoil surface, since geometric variations are primarily localized in this region. The query points are sampled independently over the entire training domain, as illustrated in Fig. 3(b) and (d). The prediction errors on the test set are summarized in Table 1, where we also include the results from [17] for comparison. The NURBS-DeepONet and Parameter-DeepONet in [17] are two DeepONet models that use different geometry represen-tation as the input of the branch network: The NURBS-DeepONet employs the 30 sequenced airfoil surface points as the branch net input, while the Parameter-DeepONet uses the two shape parameters (maximum camber and position of maxi-mum camber) as the branch net input. From Table 1, we can see that all ArGEnT models significantly outperform the DeepONet variants, with the cross-attention Ar-GEnT achieving the best accuracy among all models, and the self-attention ArGEnT also performing better than the DeepONet models by a large margin. Figure 4 shows the predicted flow fields and the corresponding absolute errors for a test case using the cross-attention ArGEnT model. We can see that the model is able to accurately capture the flow features around the airfoil, with low prediction errors throughout the domain. 14 (a) Geometry setup    
+
+> (-3,-3) (11,-3) (11,3) (-3,3)
+> (0,0) (1,0)
+> (-1,-1) (6,-1) (6,1) (-1,1)
+
+(b) Inputs of K and V for cross-attention transformer  
+
+> (-0.1,-0.1) (1.1,-0.1) (1.1,0.2) (-0.1,0.2)
+
+(c) Inputs of Q, K and V for self-attention transformer  
+
+> (-1,-1) (6,-1) (6,1) (-1,1)
+
+(d) Inputs of Q for cross-attention transformer  
+
+> (-1,-1) (6,-1) (6,1) (-1,1)
+> −0.2
+> −0.10.00.10.20.30.40.5Signed distance function (SDF)
+
+Figure 3: Laminar airfoil flow: (a) Geometry setup. (b, d) Inputs to the cross-attention ArGEnT. (c) Inputs to the self-attention ArGEnT. In (a), the blue box marks the computational domain for numerical simulations, while the green box denotes the region of interest used for training and evaluation. In (b–d), the point coordinates and their associated SDF values serve as inputs to the ArGEnT models. Note that in (b), the geometry points for the keys and values (K and V) can be sampled independently of the query points in (d), using only the point cloud near the airfoil to represent the geometry. 
+
+15 −0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+2.56 2.72 2.88 3.04 3.20 3.36 3.52 
+
+> p prediction
+
+0.000 0.001 0.002 0.003 0.004 0.005 
+
+> p prediction error
+
+0.875 0.925 0.975 1.025 1.075 1.125 1.175 
+
+> ρ prediction
+
+0.0000 0.0004 0.0008 0.0012 0.0016 0.0020 
+
+> ρ prediction error
+
+−0.15 0.00 0.15 0.30 0.45 0.60 0.75 0.90 1.05 1.20 
+
+> u prediction
+
+0.0000 0.0005 0.0010 0.0015 0.0020 0.0025 
+
+> u prediction error
+
+−0.48 
+
+−0.32 
+
+−0.16 0.00 0.16 0.32 0.48 
+
+> v prediction
+
+0.0000 0.0003 0.0006 0.0009 0.0012 0.0015 
+
+> v prediction error
+
+Figure 4: Laminar airfoil flow: contour plots of predicted flow fields (left panels) and predicted absolute errors for a test case using the cross-attention transformer model. Note that all flow field variables are presented in non-dimensional form. 
+
+16 In the self- or hybrid-attention ArGEnT models, the point distribution of the query points provides implicit geometric information that influences the attention scores and, consequently, the model’s predictions. Although both models achieve good predictive accuracy, the self-attention mechanism in them requires the query points at the inference stage to be sampled from the same distribution as the training data, which limits its flexibility in practical applications since the training data are typically generated from CFD simulations where the query points are determined by a meshing tool used to discretize the computational domain. In contrast, the cross-attention ArGEnT model allows the query points to be sampled independently of the geometry representation, providing substantially greater flexibility in selecting evaluation points. To further investigate the impact of point sampling strategies on evaluation accuracy, we conduct a systematic study by varying the sampling distribution of the query points using a parametrized sampling strategy based on the signed distance function (SDF) to control the degree of point clustering near the airfoil surface. The relative L2 error and the corresponding point distributions as functions of the sampling parameter λ are shown in Figure 5. The results indicate that the evaluation accuracy of the self-attention ArGEnT model is highly sensitive to the point sampling distribution, with the lowest error achieved when the query points follow the same distribution as the training data ( λ = 0 ). Increasing the clustering of points near the airfoil surface ( λ > 0) leads to higher errors, likely due to insufficient coverage of the far-field region, while distributing points more uniformly throughout the domain ( λ < 0) also degrades accuracy because fewer points are allocated to the near-airfoil region where the flow exhibits more complex features. In contrast, the cross-attention transformer is considerably less sensitive to the sampling strategy and maintains higher accuracy across a wide range of sampling distributions, further demonstrating its advantage in handling arbitrary query points independently of the 17 geometry representation. −3 −2 −1 0 1 2 3Sampling parameter λ
+
+> 10 −4
+> 10 −3
+> 10 −2
+> 10 −1
+> Error
+> Self-Attention Cross-Attention Hybrid-Attention
+> λ=-2
+> λ=-1
+> λ=0
+> λ=1
+> λ=2
+
+Figure 5: Laminar airfoil flow: effect of sampling strategies on evaluation accuracy of the pressure field. The left panel shows the relative L2 error versus the sampling parameter λ.The right panels show the corresponding point distributions, where points are sampled using 
+
+P ∝ 11+100 max( SDF, 10 −8)λ , with SDF the signed distance function (negative inside the airfoil, positive outside). When λ = 0 , the distribution follows the simulation grid and clusters near the surface; λ > 0 increases clustering, while λ < 0 reduces the clustering near the airfoil and spreads points more into the far field. 
+
+3.2. Turbulent flow over airfoil of varying shapes and freestream velocities 
+
+In this section, we further consider turbulent flows over airfoils with varying airfoil profiles and freestream velocities in order to evaluate ArGEnT ability to generalize across both geometric and non-geometric variations. The “full data regime” dataset provided by [31] is used, which consists of a total of 1,000 airfoil profiles (as shown 18 Table 1: Laminar airfoil flow: relative L2 errors of field variables for different models on the test set. “Self-attention”, “Cross-attention”, and “Hybrid-attention” refer to ArGEnT with different attention mechanisms. 
+
+Model p (×10 −3) ρ (×10 −3) u (×10 −3) v (×10 −3)
+
+NURBS-DeepONet [17] 6.05 5.89 6.21 4.60 Parameter-DeepONet [17] 6.85 5.18 5.38 4.25 Self-attention 0.35 0.26 1.46 4.27 Cross-attention 0.13 0.11 0.44 1.68 
+
+Hybrid-attention 0.16 0.15 0.67 2.17 in Fig. D.17(b)), which are generated using the National Advisory Committee for Aeronautics (NACA) 4-digit and 5-digit series. The freestream velocity varies in both magnitude and angle of attack, with Reynolds number ranging from 2 × 10 6 to 
+
+6 × 10 6 and angles of attack spanning from −5◦ to 15 ◦. The Mach number is kept below 0.3 to ensure the validity of the incompressible flow assumption. The flow fields are simulated using a high-fidelity CFD solver with the k–ω SST turbulence model. The computational domain extends up to 200 chord lengths away from the airfoil. The resulting Reynolds-averaged velocity components (¯ u, ¯v), pressure ¯p, and turbulent viscosity νt provide the high-fidelity solutions used to train the models and assess their predictive performance. For further details on the dataset generation and simulation setup, the reader is referred to [31]. The learned operator for the following turbulent airfoil problem, taking the cross-attention ArGEnT as an example, is therefore defined as 
+
+Cross-attention G : (˜ x, Ω, μ μμ) 7 −→ (¯ u, ¯v, ¯p, ν t) (4) where μμμ = ( Uinf , V inf ) is the far-field freestream velocity. The definition of ˜x and Ω
+
+follows Eqs. (1) and (2). 19 Following the setup in [31], the “full data regime” dataset comprises 800 cases for training and 200 cases for testing. The region of interest for both training and eval-uation is defined as [−2, 4] × [−1.5, 1.5] around the airfoil. The airfoil chord is fixed along the x-axis from (0 , 0) to (1 , 0) , as illustrated in Fig. 6(a). All solution fields are normalized using z-score normalization (as defined in Appendix G) for training and evaluation. For the self-attention ArGEnT model, the input consists of the spatial coordinates together with their corresponding SDF values, as shown in Figure 6(c). In contrast, for the cross-attention and hybrid-attention ArGEnT models, 3000 ge-ometry points are randomly sampled in the vicinity of the airfoil surface to construct the key and value matrices in the attention blocks, since geometric variations are primarily localized in this region. The query points are sampled independently over the entire training domain, as illustrated in Fig. 6(b) and (d). The prediction errors on the test set are summarized in Table 2, where results from [17] are also included for comparison. Overall, ArGEnT DeepONet consistently outperforms other widely used baseline models, achieving 2–100 × reductions in pre-diction error across the test cases. Among the different attention mechanisms, the lowest errors are obtained using either the cross-attention or hybrid-attention mod-els, while the self-attention model yields comparable prediction accuracy. Figure 7 presents the predicted flow fields and the corresponding absolute error distributions for a representative test case using the cross-attention ArGEnT. The larger errors observed in the wake region are likely due to the increased turbulence and flow sepa-ration effects present in that area, which usually either require higher-resolution data or more sophisticated modeling techniques to resolve accurately. Overall, the results demonstrate the effectiveness of the proposed ArGEnT in accurately predicting tur-bulent flows over airfoils with varying geometries and freestream conditions. Similar to the laminar airfoil flow study in Section 2, we further investigate the 20 (a) Geometry setup   
+
+> (0,0) (1,0)
+> (-2,-1.5) (4,-1.5) (4,1.5) (-2,1.5)
+
+(b) Inputs of K and V (cross-attention)  
+
+> (-0.1,-0.25) (1.1,-0.25) (1.1,0.25) (-0.1,0.25)
+
+(c) Inputs of Q, K and V (self-attention)  
+
+> (-2,-1.5) (4,-1.5) (4,1.5) (-2,1.5)
+
+(d) Inputs of Q (cross-attention)  
+
+> (-2,-1.5) (4,-1.5) (4,1.5) (-2,1.5)
+> −0.2
+> −0.10.00.10.20.30.40.5Signed distance function (SDF)
+
+Figure 6: Turbulent airfoil flow: (a) Geometry setup. (b, d) Inputs to the cross-attention trans-former. (c) Inputs to the self-attention transformer. In (a), the green box denotes the region of interest used for training and evaluation. In (b–d), the point coordinates and their associated SDF values serve as inputs to ArGEnT models. Note that in (b), the geometry points for the keys and values (K and V) can be sampled independently of the query points in (d), using only the point cloud near the airfoil to represent the geometry. 
+
+21 −0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−0.5 0.0 0.5 1.0 1.5 2.0
+
+−0.4
+
+−0.20.00.20.4
+
+−3.6
+
+−2.4
+
+−1.20.01.22.4
+
+> ¯u prediction
+
+0.00 0.03 0.06 0.09 0.12 0.15 
+
+> ¯u prediction error
+
+0.01.22.43.64.86.0
+
+> ¯v prediction
+
+0.00 0.05 0.10 0.15 0.20 0.25 
+
+> ¯v prediction error
+
+−4.8
+
+−3.6
+
+−2.4
+
+−1.20.01.2
+
+> ¯p prediction
+
+0.00 0.04 0.08 0.12 0.16 0.20 
+
+> ¯p prediction error
+
+−0.80.00.81.62.43.24.04.85.66.4
+
+> νt prediction
+
+0.00 0.16 0.32 0.48 0.64 0.80 
+
+> νt prediction error
+
+Figure 7: Turbulent airfoil flow: contour plots of predicted flow fields (left panels) and predicted absolute errors for a test case using the cross-attention ArGEnT DeepONet. Note that all flow field variables are presented in normalized form. 
+
+22 impact of point sampling strategies on evaluation accuracy, we conduct a study in which the sampling distribution of query points is systematically varied. Specifically, we adopt a parametrized sampling strategy based on the signed distance function (SDF) to control the clustering of points near the airfoil surface. Figure 8 shows the relative L2 error together with the corresponding point distributions as a function of the sampling parameter λ. The results indicate that the evaluation accuracy of the self-attention and hybrid-attention ArGEnT models is sensitive to the query-point distribution, with the best performance achieved when the sampling distribution matches that used during training ( λ = 0 ). Increasing the clustering of points near the airfoil surface ( λ > 0) leads to higher errors, likely due to reduced point coverage in the far field. Conversely, distributing points more uniformly throughout the do-main ( λ < 0) also degrades accuracy, as fewer points are concentrated on the airfoil where the flow features are most complex. These results highlight the importance of point sampling strategies for achieving optimal evaluation accuracy in self-attention and hybrid-attention models. In contrast, the cross-attention ArGEnT exhibits sub-stantially lower sensitivity to the sampling strategy and maintains superior accuracy across a wide range of sampling distributions. This further demonstrates the ad-vantage of cross-attention in enabling accurate predictions at arbitrary query points, independent of the geometry representation. 
+
+3.3. Lid-driven cavity flow 
+
+Lid-driven cavity flow is a classic benchmark problem in fluid dynamics, consisting of a closed cavity in which the flow is driven by the motion of the top lid [32]. In this study, we consider a two-dimensional cavity with parametrized geometries and varying Reynolds numbers. As shown in Fig. 9(a), the cavity geometry is defined on an L × D rectangular domain, trimmed by two triangular cutouts at the bottom 23 −3 −2 −1 0 1 2 3Sampling parameter λ
+
+> 10 −2
+> 10 −1
+> 10 0
+> Error
+> Self-Attention Cross-Attention Hybrid-Attention
+> λ=-2
+> λ=-1
+> λ=0
+> λ=1
+> λ=2
+
+Figure 8: Turbulent airfoil flow: effect of sampling strategies on evaluation accuracy of the pressure field. The left panel shows the relative L2 error versus the sampling parameter λ.The right panels show the corresponding point distributions, where points are sampled using 
+
+P ∝ 11+100 max( SDF, 10 −8)λ , with SDF the signed distance function (negative inside the airfoil, positive outside). When λ = 0 , the distribution follows the simulation grid and clusters near the surface; λ > 0 increases clustering, while λ < 0 reduces the clustering near the airfoil and spreads points more into the far field. 
+
+24 Table 2: Turbulent airfoil flow: Mean squared errors of normalized field variables for different models on the test set. “Self-attention”, “Cross-attention”, and “Hybrid-attention” refer to the ArGEnT DeepONet with different attention mechanisms. 
+
+Model ¯u(×10 −2) ¯v(×10 −2) ¯p(×10 −2) νt(×10 −2)
+
+MLP[31] 0.95 0.98 0.74 1.90 GraphSAGE[31] 0.83 0.99 0.66 1.60 PointNet[31] 3.50 3.64 1.15 2.92 Graph U-Net[31] 1.52 2.03 0.66 1.46 Self-attention 0.031 0.027 0.229 0.717 Cross-attention 0.027 0.027 0.029 0.640 Hybrid-attention 0.076 0.027 0.081 0.440 
+
+corners parametrized by dL and dR. The flow is driven by the motion of the top lid, which moves at a constant non-dimensional velocity (u, v ) = (1 , 0) . The lid width is fixed at L = 1 , while the remaining geometric parameters (D, d L, d R) ∈ [0 .5, 2] ×
+
+[0 , 1] × [0 , 1] are varied to generate a family of cavity shapes. When dL + dR < 1,the resulting domain has a trapezoidal shape, whereas for dL + dR ≥ 1, the domain becomes triangular. The Reynolds number is varied in the range 100 ≤ Re ≤
+
+1000 . The flow fields are simulated using OpenFOAM ®, solving the non-dimensional incompressible Navier–Stokes equations. The resulting velocity components (u, v )
+
+and pressure field p provide the high-fidelity solutions used to train the models and assess their predictive performance. The learned operator for the following lid-driven cavity flow problem, taking the cross-attention ArGEnT as an example, is therefore defined as 
+
+Cross-attention G : (˜ x, Ω, μ μμ) 7 −→ (u, v, p ) (5) where μμμ = ( Re, ) is the Reynolds number. The definition of ˜x and Ω follows Eqs. 25 (1) and (2). We randomly generate 3000 different cavity geometries and Reynolds numbers, and use 80% samples for training and the rest 20% samples for testing. Since the non-dimensional governing equations are used in the CFD simulations, the spatial coordinates and the flow fluid variables are of the order of 1, so no further normal-ization is applied to the spatial coordinates as well as the flow field variables. An example of input setup for the ArGEnT is illustrated in Figure 9 (b-e). For the cross-and hybrid-attention ArGEnT, the geometry points are sampled over a larger region to cover all possible cavity shapes. The query points are sampled inside the cavity domain, independently of the geometry points, as illustrated in Figures 9(c) and (e). The prediction errors on the test set are summarized in Table 3, where the re-sults from the standard DeepONet and Point-DeepOnet [25] are also included for comparison. In the DeepONet baseline, the trunk network (6 hidden layers with 256 neurons each) takes the spatial coordinates and the SDF as inputs, while the branch network (6 hidden layers with 256 neurons each) takes the geometric pa-rameters (D, d L, d R) together with the Reynolds number, normalized as Re /1000 , as inputs. In the Point-DeepONet, the trunk network takes the spatial coordinates and SDF values as inputs, while the branch network encodes the geometry using a uni-formly sampled point cloud of size 3000 within the computational domain together with the normalized Reynolds number. For a fair comparison, the network width of the Point-DeepONet is set to 200, resulting in approximately 0.78 million trainable parameters. For reference, the standard DeepONet contains about 0.66 million pa-rameters, while the attention-based ArGEnT DeepONet models contain roughly 0.86 million parameters, indicating that all models have parameter counts of comparable magnitude. 26 Remark 1. We note that Point-DeepONet is implemented using the network ar-chitecture described in the original work[25] and provided in the authors’ official open-source repository. Aside from minor data-specific preprocessing and necessary training-script adjustments, we use the default or recommended hyperparameters, without additional tuning. 
+
+The results show that the prediction error of Point-DeepONet is even higher than that of the standard DeepONet. We suspect that, when a suitable geometric param-eterization is available, representing geometry through explicit geometric parameters can be more accurate than using point-cloud representations, which may partially explain this behavior. Nevertheless, Point-DeepONet offers significant flexibility in handling arbitrary geometries. All ArGEnT models consistently outperform the stan-dard DeepONet and Point-DeepONet, achieving substantially lower prediction errors. Among the attention-based variants, the cross-attention and hybrid-attention model yield the best accuracy, while the self-attention model achieves comparable perfor-mance. Compared with Point-DeepONet, the cross- and hybrid-attention ArGEnT models employ a fixed point cloud augmented with corresponding signed distance function (SDF) values, which provides a more accurate and consistent geometric representation. In terms of computational cost, the standard DeepONet is the most efficient due to its simpler architecture. Figure 10 presents the predicted flow fields and the corresponding absolute error distributions for a representative test case obtained using the cross-attention Ar-GEnT DeepONet. The model accurately captures the vortex structures within the cavity, while the largest errors are primarily localized near the upper-right corner, where strong velocity gradients arise from the interaction between the moving lid and the stationary wall. 27 To further evaluate the generalization capability of the ArGEnT models, we test the trained models on a case that lies outside the expressive capacity of the employed geometry parameterization for training, while its Reynolds number (924) remains within the training range. The results are shown in Figure 11. We can see that the cross-attention ArGEnT is still able to provide reasonable predictions, although with increased errors compared to the test cases within the training geometry distribu-tion. This demonstrates the potential of the ArGEnT models to generalize to unseen geometries. The self- and hybrid-attention models (not shown here) exhibit similar behavior, with slightly higher errors than the cross-attention model in this extrapo-lation case. In contrast, the DeepONet model fails to handle this extrapolation case, as it relies explicitly on the predefined geometry parameterization employed during training. This limitation highlights a key advantage of the attention-based models, which are capable of operating directly on more general geometric representations and thus show greater flexibility in dealing with arbitrary geometries. Such an ad-vantage is particularly relevant for practical applications, where geometric variations can be substantial and are often difficult to capture using a fixed, low-dimensional parameterization. Furthermore, these attention-based models have the potential to be further enhanced by incorporating transfer learning [33, 34] or continual learning [35, 36, 37] strategies, which may improve their generalization performance when adapting to unseen geometries or problems. 
+
+Remark 2. Note that while the errors are not significantly different in Table 3 between the DeepONet and ArGEnt, only ArGEnT can handle geometries without parameter-ization. This is demonstrated in Figure 11 which the DeepONet cannot predict since it was not trained on geometric parameterizations that can represent a hemisphere. 
+
+28 (a) Parametrized geometry (b) Geometry setup   
+
+> (-0.6,-2.1) (0.6,-2.1) (0.6,0.1) (-0.6,0.1)
+> (c) Inputs of K and V (cross-attention)
+> (-0.6,-2.1) (0.6,-2.1) (0.6,0.1) (-0.6,0.1)
+> (d) Inputs of Q,K,V (self-attention)
+> (e) Inputs of Q (cross-attention)
+> −0.2
+> −0.10.00.10.20.30.40.5
+> Signed distance function (SDF)
+
+Figure 9: Lid driven flow: (a) Parametrized geometry. (b) Geometry setup. (c, e) Inputs to the cross-attention transformer. (d) Inputs to the self-attention transformer. In (b) the green box denotes the region where geometry points are sampled. In (c-e), the point coordinates and their associated SDF values serve as inputs to ArGEnT models. Note that in (c), the geometry points for the keys and values (K and V) can be sampled independently of the query points in (e), using only the point spreading over all the possible computational domains. 
+
+29 −0.45 
+
+> −0.30
+> −0.15 0.00 0.15 0.30 0.45 0.60 0.75 0.90
+> u prediction
+> 0.000 0.002 0.004 0.006 0.008 0.010
+> u prediction error
+> −0.48
+> −0.32
+> −0.16 0.00 0.16 0.32
+> v prediction
+> 0.000 0.002 0.004 0.006 0.008 0.010
+> v prediction error
+> −0.05 0.00 0.05 0.10 0.15
+> p prediction
+> 0.0000 0.0006 0.0012 0.0018 0.0024 0.0030
+> p prediction error
+
+Figure 10: Lid driven flow: contour plots of predicted flow fields (upper panels) and predicted absolute errors (bottom panels) for a test case using the cross-attention transformer model. Note that all flow field variables are presented in non-dimensional form. Table 3: Lid driven flow: relative L2 errors of field variables for different models on the test set. “Self-attention”, “Cross-attention”, and “Hybrid-attention” refer to the ArGEnT DeepONet with different attention mechanisms, while “DeepONet” refers to the standard DeepONet model. 
+
+Model u (×10 −2) v (×10 −2) p (×10 −2) Time (sec/step) DeepONet 1.00 1.13 1.84 0.047 
+
+Point-DeepONet 1.81 1.19 2.97 0.049 Self-attention 0.75 0.84 1.55 0.157 Cross-attention 0.69 0.83 1.55 0.154 Hybrid-attention 0.71 0.79 1.52 0.153 30 −0.45 
+
+> −0.30
+> −0.15 0.00 0.15 0.30 0.45 0.60 0.75 0.90
+> u prediction
+> −0.45
+> −0.30
+> −0.15 0.00 0.15 0.30 0.45 0.60 0.75 0.90
+> u truth
+> 0.000 0.016 0.032 0.048 0.064 0.080
+> u prediction error
+> −0.36
+> −0.24
+> −0.12 0.00 0.12 0.24
+> v prediction
+> −0.36
+> −0.24
+> −0.12 0.00 0.12 0.24
+> v truth
+> 0.000 0.012 0.024 0.036 0.048 0.060
+> v prediction error
+> −0.08
+> −0.04 0.00 0.04 0.08 0.12 0.16
+> p prediction
+> −0.08
+> −0.04 0.00 0.04 0.08 0.12
+> p truth
+> 0.000 0.008 0.016 0.024 0.032 0.040
+> p prediction error
+
+Figure 11: Lid driven flow: contour plots of predicted flow fields (upper panels), reference (middle panels) and predicted absolute errors (bottom panels) for a test case using the cross-attention transformer model. The test geometry lies outside the expressive capacity of the employed geometry parameterization for training, though its Reynolds number (924) remains within the training range. Note that all flow field variables are presented in non-dimensional form. 
+
+31 3.4. Redox Flow Battery 
+
+Redox flow batteries (RFBs) are rechargeable electrochemical energy storage sys-tems in which energy is stored in liquid electrolytes containing dissolved redox-active species, which are stored in separate tanks and are circulated through an electrochem-ical cell to generate electricity. Electrolyte flow through the porous electrodes plays a critical role in RFB operation, as it directly affects mass transport, charge transfer, and the overall electrochemical performance of the cell. In this study, we consider a simplified 2D model of an RFB to generate high–fidelity simulations data for testing ArGEnT. The 2D RFB model focuses on negative half-cell and employs an organic redox species, DHPS [38, 39], as the electrochemically active material. The geom-etry setup is illustrated in Fig. 12(a). The negative cell consists of a rectangular flow channel with a width of 100 μm and a height of 120 μm. Inside the cell, there are several cylindrical rods that represent the solid phase of the distributed porous electrodes. The rods have a fixed diameter of 14 μm, and their number and positions are varied on case by case basis. The electrolyte is pumped into the channel at a specified inlet velocity of 5 mm/s. A parametrized perturbation is added to the inlet velocity profile, which is defined as follows: 
+
+vin = ¯ v(1 + A1 sin(2 πλ 1x + ϕ1) + A2 sin(2 πλ 2x + ϕ2)) (6) where ¯v = 5 mm/s is the mean inlet velocity, {A1, A 2, ϕ 1, ϕ 2, λ 1, λ 2} are random pa-rameters controlling the inlet velocity perturbation. The electrochemical reactions will take place at the surface of the rods, consuming the reactant species and gen-erating electric current. The problem is simulated using COMSOL ® that solves the coupled physics comprising fluid flow, species transport, charge transport, and in-terfacial electrochemical kinetics, as described in Appendix E. The resulting velocity (u, v), pressure ( p), electric potential ( ϕ− 
+
+> e
+
+), overpotential ( η−), and species concen-32 tration ( cR) fields provide the high-fidelity solutions used to train the models and assess their predictive performance. The learned operator for the following redox flow battery problem, taking the cross-attention ArGEnT as an example, is therefore defined as 
+
+Cross-attention G : (˜ x, Ω, μ μμ) 7 −→ (u, v, p ) (7) where μμμ = vin is the inlet velocity profile, represented by velocity values sampled at 100 uniformly distributed inlet points. The definition of ˜x and Ω follows Eqs. (1) and (2). (a) Geometry setup 
+
+> (b) Inputs of K and V (cross-attention)
+> (c) Inputs of Q (cross-attention)
+> (d) Inputs of Q, K and V (self-attention)
+> −0.2
+> −0.10.00.10.20.30.40.5Signed distance function (SDF)
+
+Figure 12: Redox flow battery: (a) Geometry setup and boundary conditions. (b, c) Inputs to the cross-attention transformer. (d) Inputs to the self-attention transformer. In (b-d), the point coordinates and their associated SDF values serve as inputs to ArGEnT models. Note that in (b), the geometry points for the keys and values (K and V) can be sampled independently of the query points in (c), using the points spreading over all the possible computational domains. 
+
+For the number of rods nRods = 1 , 3, 5, we randomly generate 2813, 2568, and 2346 distinct configurations, respectively, each consisting of a distinct geometry and an inlet velocity profile. For each nRods case, 80% of the samples are used for 33 training and the remaining 20% for testing. Since the solution variables exhibit different magnitudes, z-score normalization is applied to each variable, as defined in Appendix G. An example of the input setup for the ArGEnT models is shown in Fig. 12(b–d). For the cross-attention ArGEnT model, geometry points are sampled over the cell to ensure coverage of all possible geometries. The query points are sampled independently within the computational domain, as illustrated in Fig. 12(c) and (d). To represent the inlet velocity profile, we uniformly sample 100 points along the inlet boundary and use their corresponding velocity values as inputs to the branch network of the ArGEnT DeepONets. The prediction errors on the test set are summarized in Table 4, where the re-sults from the standard DeepONet and Point-DeepONet [25] are also included for comparison. In the DeepONet baseline, the trunk network (6 hidden layers with 256 neurons each) takes the spatial coordinates and the signed distance function (SDF) as inputs, while the branch network (6 hidden layers with 256 neurons each) takes the discrete inlet velocity values and the rod center coordinates as inputs. In the Point-DeepONet, the trunk network takes the spatial coordinates and SDF values as inputs, while the branch network encodes the geometry using a uniformly sampled point cloud of size 5000 within the computational domain together with the inlet velocity values. For a fair comparison, the network width of the Point-DeepONet is set to 200, resulting in approximately 0.80 million trainable parameters. For ref-erence, the standard DeepONet contains about 0.68 million parameters, while the attention-based ArGEnT DeepONet models contain roughly 0.88 million parameters, indicating that all models have parameter counts of comparable magnitude. 
+
+Remark 3. We note that Point-DeepONet is implemented using the network ar-chitecture described in the original work[25] and provided in the authors’ official 
+
+34 open-source repository. Aside from minor data-specific preprocessing and necessary training-script adjustments, we use the default or recommended hyperparameters, without additional tuning. 
+
+All models are trained separately for each value of nRods . For nRods = 1 ,the prediction errors of ϕ− 
+
+> e
+
+obtained with the standard DeepONet are comparable to those of the attention-based models. However, for the remaining five variables, the attention-based models achieve significantly lower errors—exceeding one order of magnitude improvement over the standard DeepONet. As rod number increases, the prediction errors of all models grow due to the increased geometric complex-ity. Nevertheless, the attention-based models consistently outperform the standard DeepONet across all variables and values of nRods . For the flow variables ( u, v,and p), the attention-based models achieve approximately 50 × lower errors than the standard DeepONet when nRods = 3 and nRods = 5 , for which the standard Deep-ONet fails to produce reasonable predictions. This behavior can be attributed to the limitation of representing geometry solely by a concatenated rod center coordinates in the DeepONet branch network. In particular, the DeepONet branch network is not permutation invariant with respect to the ordering of rod centers: two geometrically identical configurations specified as (x1, x2) and (x2, x1) are treated as distinct in-puts, despite representing the same physical geometry. As number of rods increases, this ambiguity in geometric representation leads to inconsistent operator inputs and degraded predictive performance. By contrast, the attention-based models operate directly on unordered geometric representations and are permutation-invariant with respect to the ordering of individual geometric elements. This enables a consistent encoding of multi-rod configurations and provides a key advantage in handling com-plex and arbitrary geometries. On the other hand, the standard DeepONet yields 35 reasonable predictions for the electrochemical and concentration variables ( ϕ− 
+
+> e
+
+, η−,and cR), as the electrochemical reactions are less sensitive to rod interactions than the flow field, as illustrated in Figure 13. Among the attention-based models, the cross-attention and hybrid-attention models achieve the highest accuracy, while the self-attention model exhibits comparable performance. In terms of computational cost, the standard DeepONet is the most efficient due to its simpler architecture. Similar to the findings in Section 3.3, Point-DeepONet does not outperform the standard DeepONet, which may be attributed to the limited geometric fidelity of uniformly sampled point clouds within the computational domain. Figure 13 shows the predicted flow fields and the corresponding absolute error distributions for a representative test case obtained using the cross-attention Ar-GEnT. The model accurately captures the flow structures around the rods as well as the spatial distributions of the electrochemical variables. An exception is observed for the electrolyte potential ϕ− 
+
+> e
+
+, for which the predicted spatial pattern does not fully match the reference solution. Despite this mismatch in spatial patterns, the absolute prediction errors of ϕ− 
+
+> e
+
+remain trivial. This behavior is attributed to the fact that 
+
+ϕ− 
+
+> e
+
+is nearly constant throughout the domain, with spatial variations that are much smaller than its mean value. Such weak variations make it challenging for the model to accurately learn and reproduce the subtle spatial structure of ϕ− 
+
+> e
+
+, even though the overall magnitude is well captured. To further assess the generalization capability of the ArGEnT models, we eval-uate the trained networks on a test case that lies outside the expressive capacity of the geometry parameterization used during training. The results are shown in Figure 14. The cross-attention ArGEnT is still able to produce reasonable pre-dictions when the left and right cell walls become curved, although the prediction errors increase compared to those for test cases within the training geometry distri-36 bution. This result demonstrates the potential of the ArGEnT models to generalize to previously unseen geometries. The self-attention and hybrid-attention models (not shown) exhibit similar qualitative behavior in this extrapolation setting. In contrast, the standard DeepONet fails to handle this extrapolation case, as it relies explicitly on the predefined geometry parameterization employed during training. This lim-itation highlights a key advantage of ArGEnT models, which can operate directly on more general geometric representations and therefore offer greater flexibility in handling arbitrary geometries. We further evaluate the extrapolation capability of the ArGEnT models with respect to the number of rods. Separate cross-attention ArGEnT models are trained using datasets with nRods = 1 , 3, and 5, respectively, and each trained model is evaluated on test cases spanning all three rod configurations. The resulting test er-rors are summarized in Table 5. The results show that models trained on simpler geometries (with fewer rods) do not generalize well to more complex geometries (with a larger number of rods). In contrast, when trained on more complex geometries, the model generalizes reasonably well to simpler configurations. This asymmetric behavior indicates that training on geometrically richer cases enables the model to learn more informative geometric features that remain relevant across different lev-els of complexity. As expected, the lowest prediction errors are obtained when the training and testing geometries involve the same number of rods. This asymmetric generalization behavior also extends to extrapolation beyond the training geometry parameterization. In particular, models trained on simpler geometries fail to general-ize to the curved-boundary case, whereas those trained on more complex geometries with a larger number of rods achieve reasonable performance. Overall, these results highlight the importance of geometric diversity in the training data for enabling robust extrapolation to unseen geometries. 37 0.894 0.896 0.898 
+
+φ− 
+
+> e
+
+prediction  
+
+> 0.8950 0.8965
+
+φ− 
+
+> e
+
+truth 
+
+> 0.0000 0 .0005 0 .0010 0 .0015
+
+φ− 
+
+> e
+
+prediction error   
+
+> −1.2−1.0−0.8
+
+η− prediction   
+
+> −1.2−1.0−0.8
+
+η− truth   
+
+> 0.000 0.001 0.002
+
+η− prediction error   
+
+> −1.50.01.5
+
+cR prediction   
+
+> −1.50.01.5
+
+cR truth   
+
+> 0.000 0.004 0.008
+
+cR prediction error   
+
+> −0.40.00.4
+
+u prediction   
+
+> −0.30.00.3
+
+u truth   
+
+> 0.000 0.015 0.030
+
+u prediction error   
+
+> 0.00.61.2
+
+v prediction   
+
+> 0.00.61.2
+
+v truth   
+
+> 0.00 0.01 0.02
+
+v prediction error   
+
+> 048
+
+p prediction   
+
+> 048
+
+p truth   
+
+> 0.00 0.05 0.10
+
+p prediction error Figure 13: Redox flow battery: contour plots of predicted fields (left panels) and predicted absolute errors for a test case using the cross-attention transformer model. Note that all field variables are presented in normalized form. 
+
+38 0.26 0.28 0.30 
+
+φ− 
+
+> e
+
+prediction  
+
+> 0.2025 0.2040
+
+φ− 
+
+> e
+
+truth   
+
+> 0.06 0.08 0.10
+
+φ− 
+
+> e
+
+prediction error   
+
+> −0.6−0.4−0.2
+
+η− prediction   
+
+> −0.4−0.20.0
+
+η− truth   
+
+> 0.00 0.06 0.12
+
+η− prediction error   
+
+> −1.50.01.5
+
+cR prediction   
+
+> −1.50.01.5
+
+cR truth   
+
+> 0.00.20.4
+
+cR prediction error   
+
+> −0.30.00.3
+
+u prediction   
+
+> −0.30.00.3
+
+u truth   
+
+> 0.00 0.06 0.12
+
+u prediction error   
+
+> 0.00.40.8
+
+v prediction   
+
+> 0.00.40.8
+
+v truth   
+
+> 0.00 0.15 0.30
+
+v prediction error   
+
+> −101
+
+p prediction  
+
+> 0.01.5
+
+p truth    
+
+> 0.00.30.60.9
+
+p prediction error Figure 14: Redox flow battery: contour plots of predicted fields (left panels) and predicted absolute errors for a test case using the cross-attention transformer model. The test geometry lies outside the expressive capacity of the employed geometry parameterization for training, though its Reynolds number (924) remains within the training range. Note that all field variables are presented in normalized form. 
+
+39 Table 4: Redox flow battery problem: relative  L2 errors of normalized field variables at different number of rods  nRods . Best (lowest) values in each column are highlighted in bold. “Self-attention”, “Cross-attention”, and “Hybrid-attention” refer to the ArGEnT DeepONet models with different attention mechanisms, while “DeepONet” refers to the standard DeepONet model. 
+
+> nRods  Model  ϕ−
+> e η− cR u v p Time (sec/step) 1DeepONet  8.96e-4  1.02e-3  4.470e-3  6.49e-2  2.03e-2  2.39e-2  0.03
+> Point-DeepONet  3.52e-1  3.72e-1  4.09e-1  5.17e-2  1.06e-1  3.77e-1  0.04 Self-attention  6.07e-4  5.17e-4  2.16e-3  1.00e-2  3.99e-3  6.76e-3  0.10 Cross-attention  3.76e-4  3.23e-4  1.38e-3  7.97e-3  3.05e-3  6.48e-3  0.15 Hybrid-attention  1.32e-3  5.72e-4  2.10e-3  1.06e-2  3.41e-3  6.68e-3  0.13 3DeepONet  6.13e-2  3.75e-2  2.22e-2  1.28e0  4.63e-1  4.76e-1  0.03
+> Point-DeepONet  1.97e-1  3.61e-2  3.45e-1  1.00e0  1.74e-1  3.34e-1  0.04 Self-attention  2.20e-2  1.38e-2  6.59e-3  4.18e-2  1.70e-2  3.07e-2  0.13 Cross-attention  1.89e-2  1.36e-2  4.39e-3  4.69e-2  1.54e-2  3.41e-2  0.15 Hybrid-attention  3.63e-2  1.85e-2  5.89e-3  3.30e-2  1.10e-2  2.64e-2  0.14 5DeepONet  1.29e-2  1.64e-2  7.63e-2  1.56e0  6.23e-1  6.95e-1  0.03
+> Point-DeepONet  9.49e-3  2.16e-1  3.07e-1  9.38e-1  2.16e-1  4.23e-1  0.04 Self-attention  6.69e-3  7.54e-3  7.28e-3  6.74e-2  2.91e-2  5.63e-2  0.14 Cross-attention  7.83e-3  7.13e-3  4.73e-3  8.11e-2  2.90e-2  5.83e-2  0.16 Hybrid-attention  7.37e-3  6.14e-3  6.23e-3  5.02e-2  2.06e-2  4.00e-2  0.15
+
+40 Table 5: Redox flow battery problem: extrapolation errors for the streamwise velocity v across different nRods using the cross-attention ArGEnT model. Best (lowest) values in each row are in bold. 
+
+Train / Test nRods = 1 nRods = 3 nRods = 5 nRods = 3 (Curved Bound) Train: nRods = 1 3.05e-3 3.58e-1 4.59e-1 3.71e-1 Train: nRods = 3 3.83e-2 1.54e-2 9.29e-2 9.22e-2 Train: nRods = 5 9.94e-2 6.51e-2 2.90e-2 1.44e-1 
+
+3.5. Jet Engine Bracket 
+
+In the previous tests, all geometries were two-dimensional. To further evaluate the performance of the ArGEnT models on three-dimensional problems, we consider a jet engine bracket problem using the dataset released in [25], which is constructed based on the DeepJEB geometries introduced in [40]. The DeepJEB framework provides a family of brackets with non-parametric three-dimensional geometries that are difficult to represent using low-dimensional parameterizations. Several representative bracket geometries are shown in Fig. D.19 to provide an intuitive illustration. The released dataset [25] includes displacement components (ux, u y, u z ) and the von Mises stress field σvm under three loading conditions: vertical, horizontal, and diagonal loads. These load cases are illustrated in Fig. 15. The corresponding structural responses are obtained via nonlinear static finite element analysis. Details of the simulation setup and dataset generation procedure can be found in [25]. The full dataset contains 6,315 cases, with the number of mesh nodes ranging from approximately 120,000 to 380,000 across different geometries. Following [25], only 3,000 cases are used for training and testing, randomly selected from the com-plete data set. To ensure a fair comparison between the ArGEnT models and their 41 Figure 15: Jet engine bracket: (a) Isometric, (b) top, and (c) side views of the bracket geometry. Bolt locations are marked in red in the top view (b). Applied vertical, horizontal, and diagonal loading directions are illustrated by yellow arrows in (c). 
+
+Point-DeepONet counterparts, we also sampled 3,000 cases from the full dataset for model training and evaluation. Owing to the randomness of the sampling procedure, the specific cases used in this study may differ from those employed in the reference [25]. In our sampled subset, there are 1,782 unique geometries, comprising 1,020 vertical, 985 horizontal, and 995 diagonal load cases. For comparison, the refer-ence [25] reports 1,785 unique geometries, with 969 vertical, 1,009 horizontal, and 1,022 diagonal load cases. We use 80% of the samples for training and the remain-ing 20% for testing. For this problem, we only consider the cross-attention model, as it consistently delivers the best performance across all test cases in the previous sections. To make the number of trainable parameters comparable between the cross-attention ArGEnT DeepONet and the Point-DeepONet[25], we use a narrower width of MLP layers (72 per layer) and narrower attention embedding dimension (72) for the cross-attention model. As a result, the cross-attention ArGEnT DeepONet con-tains approximately 0.28 million parameters, which is comparable to the 0.25 million parameters of the Point-DeepONet. For the cross-attention ArGEnT model, 5,000 42 points are first sampled uniformly within a cuboid region that encloses all possible geometries. The signed distance function (SDF) values at these points are computed for each geometry and used as geometry inputs to the ArGEnT models. To mitigate the computational cost associated with large-mesh learning, 30,000 query points are sampled from the simulation mesh nodes for each geometry, and 5,000 points are randomly subsampled at each training step. The corresponding displacement com-ponents (ux, u y, u z ) and von Mises stress ( σvm ) values at these points are used as the target outputs for training and evaluation the cross-attention ArGEnT. The learned operator for the following jet engine bracket problem, taking the cross-attention ArGEnT as an example, is therefore defined as 
+
+Cross-attention G : (˜ x, Ω, μ μμ) 7 −→ (ux, u y, u z , σ vm ) (8) where μμμ = ( mass, F x, F y, F z ) includes the bracket mass and the applied loads at 
+
+x, y, z directions. The definition of ˜x and Ω follows Eqs. (1) and (2). Since the solution variables exhibit different magnitudes, z-score normalization is applied to each variable, as defined in Appendix G. The prediction errors on the test set are summarized in Table 6, where the results from the standard DeepONet, PointNet and Point-DeepONet [25] are also included for comparison. When trained with comparable numbers of trainable parameters and dataset size, the cross-attention ArGEnT model achieves consistently higher accuracy than all other models across different load conditions, albeit at increased computational cost. In addition, we investigate the scaling capability of the cross-attention ArGEnT by training it on the full dataset (6315 cases) with approximately three times more trainable parameters (0.87 million). This scaling leads to a sig-nificant reduction in prediction errors, demonstrating the strong scalability of the cross-attention ArGEnT and highlighting its potential for realistic engineering ap-43 plications. 
+
+Remark 4. In our experiments in Sections 3.3, 3.4, and 3.5, Point-DeepONet does not outperform DeepONet on the lid-driven cavity flow and redox flow battery prob-lems, although it is reported to surpass DeepONet on the 3D jet engine bracket prob-lem in the original study [25]. A key distinction is that the bracket setting does not admit an explicit low-dimensional geometric parametrization, whereas the cavity and battery problems considered here provide structured geometric descriptors that can be directly incorporated into the DeepONet branch network. When such geometric parameters are available, explicitly leveraging them may provide DeepONet with a representational advantage over a Point-DeepONet that relies solely on point-cloud representations. Nevertheless, Point-DeepONet retains a clear advantage in handling arbitrary geometries without requiring explicit parametrization. 
+
+Figure 16 shows the predicted response fields and the corresponding absolute error distributions for a representative test case obtained using the cross-attention ArGEnT model (scaling-up setting). The model accurately captures the spatial dis-tributions of both the displacement fields and the von Mises stress field. Compared with the displacement fields, the von Mises stress field exhibits much larger local gra-dients, which poses a greater challenge for machine-learning-based surrogate models. As shown in the figure, the prediction errors for the von Mises stress are noticeably larger in regions with strong local gradients. This behavior may be attributed to limitations in network expressivity as well as increased uncertainty originating from the underlying numerical simulation in high-gradient regions. 44 Table 6: Jet engine bracket problem: Mean absolute errors of original field variables under different load directions. Best (lowest) values in each column are highlighted in bold. “Cross-attention”, namely the cross-attention ArGEnT, uses parameter counts and dataset size comparable to Point-DeepONet; ”Cross-attention (scaling up)” uses approximately 2.5 × more parameters and a 2 × larger dataset (the full dataset). 
+
+Model Load ux(mm) uy(mm) uz (mm) σvm (MPa) PointNet[25] Vertical 0.008 0.003 0.013 11.666 Horizontal 0.006 0.002 0.008 9.073 Diagonal 0.004 0.002 0.006 7.639 DeepONet[25] Vertical 0.026 0.007 0.048 21.842 Horizontal 0.024 0.004 0.026 20.091 Diagonal 0.006 0.005 0.016 12.555 Point-DeepONet[25] Vertical 0.007 0.003 0.012 10.541 Horizontal 0.005 0.002 0.006 7.935 Diagonal 0.003 0.002 0.005 7.090 Cross-attention Vertical 0.0039 0.0018 0.0076 7.9454 Horizontal 0.0033 0.0012 0.0047 6.5486 Diagonal 0.0017 0.0011 0.0031 5.6045 Cross-attention (Scaling up) Vertical 0.0023 0.0013 0.0042 6.1865 
+
+Horizontal 0.0020 0.0009 0.0026 4.9135 
+
+Diagonal 0.0012 0.0008 0.0021 4.5795 
+
+45 −0.0332 0.0643 0.1618 
+
+ux prediction   
+
+> −0.0332 0.0643 0.1618
+
+ux truth   
+
+> 0.000000 0.001708 0.003417
+
+ux prediction error   
+
+> −0.04316 −0.00589 0.03138
+
+uy prediction   
+
+> −0.04316 −0.00589 0.03138
+
+uy truth   
+
+> 0.000000 0.001897 0.003794
+
+uy prediction error   
+
+> −0.0030 0.1204 0.2438
+
+uz prediction   
+
+> −0.0030 0.1204 0.2438
+
+uz truth   
+
+> 0.0000 0.0022 0.0044
+
+uz prediction error   
+
+> 0.9116 .6232 .2
+
+σvm prediction   
+
+> 0.9116 .6232 .2
+
+σvm truth   
+
+> 0.00 5.81 11 .62
+
+σvm prediction error Figure 16: Jet engine bracket: contour plots of predicted structural response fields, ground truth and predicted absolute errors for a test case using the cross-attention transformer model. The error fields contain a small number of extreme outliers, especially for the von Mises stress field. For visualization purposes, values above the 99th percentile and below the 1st percentile are trimmed. Besides, the displacement components (ux, u y , u z ) is shown in mm and the von Mises stress σvm 
+
+in MPa. 
+
+46 4. Conclusion and Future Work 
+
+In this work, we developed ArGEnT, a geometry-encoded transformer archi-tecture designed to represent complex and irregular geometries through attention mechanisms. Three ArGEnT variants were developed, namely self-attention, cross-attention, and hybrid-attention, each providing a flexible and expressive means of encoding geometric information. While ArGEnT is a standalone architecture, as demonstrated in the laminar airfoil case, it was coupled with DeepONet for other cases as a representative testbed to systematically evaluate its effectiveness in geometry-aware surrogate modeling. The resulting ArGEnT-based operator models were assessed on a diverse set of problems, including laminar and turbulent airfoil flows, lid-driven cavity flow, a pore-scale redox flow battery system, and a 3D jet engine bracket problem. Across all test cases, models with ArGEnT geometry encoders achieve significantly lower predic-tion errors than the standard DeepONet and other models reported in the literature. Moreover,ArGEnT models exhibit strong generalization capability to unseen geome-tries that lie outside the expressive capacity of the geometry variations used during training—a regime in which the standard DeepONet fails. Among the proposed variants, the cross-attention and hybrid-attention architectures consistently deliver the highest accuracy and typically do not require the signed distance function as an additional input feature. The self-attention model attains comparable performance; however, only the cross-attention model demonstrates robustness with respect to the sampling of query points during the inference stage. In future work, we plan to extend the ArGEnT framework to more complex multi-physics systems to further examine its capability in realistic engineering applications. In addition, we will explore transfer learning and continual learning strategies to fur-47 ther enhance the transferability and generalization capability of the ArGEnT models across different problem settings. Finally, we will study the incorporation of physics-informed constraints into the ArGEnT DeepONet framework to improve predictive accuracy and physical consistency. 
+
+Acknowledgments 
+
+The research described in this paper was conducted as part of an interlabora-tory collaboration involving Pacific Northwest National Laboratory (PNNL, Con-tract No. DE-AC05–76RL01830), Lawrence Livermore National Laboratory (LLNL, Contract No. DE-AC52-07NA27344), and Sandia National Laboratories (SNL, Con-tract No.DE-NA0003525) under the DOE Interlaboratory (IL) Laboratory Directed Research and Development (LDRD) Pilot Program. Computational resources were provided by PNNL Research Computing. PNNL release number is PNNL-SA-219947. LLNL release number is LLNL-JRNL-2015467. Any subjective views or opinions that might be expressed in the paper do not necessarily represent the views of the U.S. Department of Energy or the United States Government. 
+
+Appendix A. Self-attention block 
+
+The self-attention block consists of three main steps: query, key, and value pro-jection. First, the input features are linearly transformed into three separate repre-sentations: queries, keys, and values. Next, the attention scores are computed by taking the dot product of the queries and keys, followed by a softmax operation to obtain the attention weights. Finally, the output is generated by taking a weighted sum of the values, where the weights are determined by the attention scores. The 48 mathematical formulation of the self-attention mechanism is given by: Attention (Q, K, V ) = softmax 
+
+QK T
+
+√dk
+
+
+
+V (A.1) where Q ∈ Rn×dq , K ∈ Rn×dk , and V ∈ Rn×dv represent the query, key, and value matrices, respectively. The dimensions dq, dk, and dv denote the feature dimensions of the queries, keys, and values, respectively, while n represents the number of input elements. dq should be equal to dk for the dot product operation to be valid, while 
+
+dv can be different. For simplicity of implementation, we set d = dq = dk = dv
+
+throughout our models. The scaling factor √dk is used to prevent the dot products from becoming too large, which can lead to numerical instability during the softmax operation. In practice, we can use linear attention mechanisms [41], including the Fourier-type attention and Galerkin-type attention, to achieve higher accuracy and effi-ciency. The Fourier-type attention uses the Fourier-type integral transform to ap-proximate the attention operation, while the Galerkin-type attention employs the Petrov–Galerkin-type projection to approximate the attention operation. The for-mulations of these two linear attention mechanisms are given by: 
+
+Fourier-type : Attention (Q, K, V ) = ( eQ eKT )V /n (A.2) 
+
+Galerkin-type : Attention (Q, K, V ) = Q( eKT eV )/n, (A.3) where e◦ denotes a trainable non-batch-based normalization operation, which can be implemented using the layer normalization. We note that the complexity of the standard, Fourier-type and Galerkin-type attentions have a complexity of O(n2d),
+
+O(n2d) and O(nd 2), respectively. Since in our applications d ≪ n, the Galerkin-type attention is more efficient than the other two attention mechanisms, and thus we use it in all our experiments unless otherwise specified. Note that the scaling factor n
+
+49 in the Fourier-type and Galerkin-type attentions is the number of input elements for keys/values to maintain numerical stability. 
+
+Appendix B. Cross-attention block 
+
+The cross-attention block is similar to the self-attention block, but it operates on two different input sequences: the query sequence and the key-value sequence. This allows the model to focus on relevant parts of the key-value sequence while processing the query sequence. The mathematical formulation of the cross-attention mechanism is given by: 
+
+Standard : CrossAttention (Q, K, V ) = softmax 
+
+QK T
+
+√dk
+
+
+
+V (B.1) 
+
+Fourier-type : CrossAttention (Q, K, V ) = ( eQ eKT )V /n (B.2) 
+
+Galerkin-type : CrossAttention (Q, K, V ) = Q( eKT eV )/n, (B.3) where Q ∈ Rm×dq , K ∈ Rn×dk , and V ∈ Rn×dv represent the query, key, and value matrices, respectively. Similar to the self-attention block, we set d = dq = dk = dv
+
+for simplicity, and also the scaling factor √dk in the standard attention is used to maintain numerical stability. 
+
+Appendix C. Rotary Position Embeddings (RoPE) 
+
+The attention mechanism in Transformer architectures is inherently position-agnostic, since the dot-product operation between query and key vectors depends only on their feature representations. To incorporate positional information, differ-ent strategies have been proposed, such as absolute sinusoidal embeddings [26] and learnable position vectors. However, these methods encode absolute positions rather 50 than relative ones, which may limit generalization to unseen sequence lengths or shifted spatial coordinates. Rotary Position Embeddings (RoPE) [42] address this limitation by encoding positional information through rotations applied directly to the query and key em-beddings. Instead of adding sinusoidal terms, RoPE defines a mapping 
+
+ψ(qi, x i) = Θ( xi)qi, (C.1) where xi is the coordinate of the i-th token (or spatial point), qi ∈ Rd is its embed-ding, and Θ( xi) is a block-diagonal rotation matrix: 
+
+Θ( xi) = Diag (R1, R2, . . . , Rd/ 2), Rl =
+
+cos( λx iθl) − sin( λx iθl)sin( λx iθl) cos( λx iθl)
+
+ . (C.2) Here: 
+
+• λ is the wavelength of the spatial or temporal domain (e.g., λ = 2048 for a discretized domain with 2048 grid points). 
+
+• θl is the frequency assigned to the l-th embedding pair, commonly defined as 
+
+θl = 10000 − 2( l−1)  
+
+> d
+
+, l ∈ { 1, 2, . . . , d/ 2}, (C.3) following the frequency scaling in the original sinusoidal positional encod-ing [26]. A key property of RoPE is that the attention score depends only on the relative displacement between positions: 
+
+ψ(qi, x i)⊤ψ(kj , x j ) = q⊤ 
+
+> i
+
+Θ( xi − xj )kj , (C.4) 51 where kj is the key embedding at coordinate xj . This ensures that the attention mechanism is translation-invariant, making it naturally suited for tasks where rela-tive, rather than absolute, positions are most informative. RoPE can be extended to higher-dimensional domains by splitting the embedding dimensions and applying independent rotations for each spatial axis. For example, in a 2D domain with coordinates xi = ( αi, β i), the embedding is divided into two halves: one rotated with respect to αi and the other with respect to βi.
+
+Appendix D. Geometry distributions 
+
+Figure D.17 visualizes the distribution of airfoil geometries used in the laminar and turbulent airfoil flow problems, illustrating the geometric variability covered by the training and test sets. Figures D.18 and D.19 visualize the distribution of geometries used in the lid-driven cavity flow, Redox flow battery problems and jet engine bracket problem, illustrating the geometric variability covered by the training and test sets. 52 (a) All airfoil profiles used in the laminar airfoil flow problem 
+
+(b) Partial airfoil profiles used in the turbulent airfoil flow problem Figure D.17: Airfoil profiles used in the laminar and turbulent airfoil flow problems. The red airfoils are in the training set, while the blue airfoils are in the test set. 
+
+53 (a) Partial geometry profiles used in the lid-driven cavity flow problem 
+
+(b) Partial geometry profiles used in Redox flow battery problem Figure D.18: Geometry profiles used in the lid-driven cavity flow and Redox flow battery problems. The red geometries are in the training set, while the blue geometries are in the test set. 
+
+54 Figure D.19: Partial geometries used in the jet engine bracket problem. The red geometries are in the training set, while the blue geometries are in the test set. 
+
+55 Appendix E. Redox flow battery model 
+
+The Redox flow battery is modeled as a coupled multiphysics system involving fluid flow, species transport, charge transport, and interfacial electrochemical reac-tions. For the testing purpose, a simplified two-dimensional (2D) pore-scale redox flow battery model is adopted for data generation. The model is not intended to rep-resent a full cell-scale device; instead, it serves as a controlled testbed for ArGEnT development and testing its capability for geometry-dependent generalization. The governing equations are summarized as follows. 
+
+• Fluid transport. The electrolyte flow is governed by the conservation of mass and momentum, 
+
+∂ρ ∂t + ∇ · (ρu) = 0 , (E.1) 
+
+∂(ρu)
+
+∂t + ∇ · (ρuu ) = −∇ p + μ∇ ·  ∇u + ( ∇u)T  + ρg, (E.2) where ρ is the fluid density, u is the velocity vector, p is the pressure, and μ
+
+denotes the electrolyte dynamic viscosity. 
+
+• Species transport. The transport of ionic species j follows an advection– diffusion–migration equation, 
+
+∂C j
+
+∂t + u · ∇ Cj = −Dj ∇2Cj + ∇ · 
+
+zj Dj Cj
+
+RT ∇ϕe
+
+
+
+, (E.3) where Cj is the concentration, Dj is the diffusion coefficient, zj is the ionic charge number, R is the universal gas constant, T is the temperature, and ϕe
+
+is the electrolyte-phase electric potential. 
+
+• Charge transport. Charge transport is modeled separately in the solid elec-trode and electrolyte phases. To simplify the model, the solid electrode poten-56 tial is assumed to be spatially uniform and set to zero: 
+
+ϕs = 0 (E.4) Under this assumption, the solid-phase charge transport equation is not solved explicitly. In the electrolyte phase, charge conservation is enforced as: 
+
+∇ · κef f ∇ϕe + F X
+
+> j
+
+zj Dj ∇Cj
+
+!
+
+= 0 , (E.5) where κs and κef f denote the electrolyte conductivities, respectively, and F is Faraday’s constant. 
+
+• Interfacial Electrochemistry. Electrochemical reactions occur at the re-solved electrode–electrolyte interface and are described by the Butler–Volmer equation in terms of local interfacial current density: 
+
+i = F k 0
+
+ Cox 
+
+Cref 
+
+αan Cred 
+
+Cref 
+
+αcat 
+
+exp 
+
+αan F η RT 
+
+
+
+− exp 
+
+
+
+−αcat F η RT 
+
+ 
+
+, (E.6) where i is the interfacial current density, k0 is the reaction rate constant, Cox 
+
+and Cred are the oxidized and reduced species concentrations at the interface, 
+
+Cref is a reference concentration, and αan and αcat are the anodic and cathodic transfer coefficients. 
+
+• Overpotential definition With the solid-phase potential fixed at zero, the local overpotential is defined as 
+
+η = ϕs − ϕe − Eeq , (E.7) 
+
+= −ϕe − Eeq , (E.8) where ϕe is the electrolyte-phase electric potential and Eeq is the local equilib-rium (Nernst) potential. 57 • Equilibrium potential for the DHPS redox couple For the DHPS-based anolyte operating in alkaline electrolyte [39], the two-electron redox reaction is written as 
+
+R + 2 H 2O + 2 e− ⇌ R2H + 2 OH −. (E.9) where R and R2H denote the oxidized and reduced forms of the DHPS redox couple, respectively. The corresponding equilibrium potential is given by the Nernst equation 
+
+Eeq = E0 + RT 
+
+2F ln 
+
+ CR c 2H2O
+
+CR2H c 2OH −
+
+
+
+, (E.10) where CR and CR2H are the concentrations of the oxidized and reduced DHPS species, respectively, cH2O and cOH − are the local concentrations of water and hydroxide ions, and E0 = −1.06 V is the formal redox potential of the DHPS redox couple (vs. Ag/AgCl). 
+
+Appendix F. Influence of signed distance function (SDF) as an additional input feature 
+
+To investigate the impact of incorporating the signed distance function (SDF) as an additional input feature, we conduct supplementary experiments on the lid-driven cavity flow and redox flow battery problems. For both the standard DeepONet and the attention-based ArGEnT DeepONet models, we compare the prediction accuracy obtained with and without including the SDF in the trunk network inputs. For the without SDF setting in the cross-attention and hybrid-attention models, the SDF is removed only from the query inputs, while it is retained in the key–value inputs, since the geometry is implicitly encoded through the SDF distribution in the key–value representations. In contrast, for the self-attention model, the SDF is completely 58 removed from all input features in the without SDF setting to ensure the validity and consistency of the self-attention mechanism. The test errors as a function of training steps for the lid-driven cavity flow and redox flow battery problems are shown in Figures F.20 and F.21, respectively, and the final test errors are summarized in Table F.7. The results indicate that incor-porating the SDF improves prediction accuracy for the standard DeepONet and the self-attention ArGEnT DeepONet models. This improvement can be attributed to the explicit geometric information provided by the SDF, which facilitates more ac-curate modeling of the influence of complex geometries on the solution fields. In contrast, for the cross-attention and hybrid-attention ArGEnT DeepONet models, the inclusion of the SDF does not lead to noticeable accuracy gains. This behavior arises because these architectures can effectively extract geometric information di-rectly from the geometry representations in the key and value inputs, making the explicit SDF input less essential. This observation highlights the capability of cross-attention and hybrid-attention mechanisms to learn complex geometric relationships from data alone, thereby reducing reliance on auxiliary geometric features. Such a property is particularly advantageous in practical applications where the SDF or its associated quantities are difficult to obtain. For example, in physics-informed training settings that involve gradients of the solution fields with respect to spatial coordinates, incorporating SDF gradients may introduce additional computational overhead. 59 0 20000 40000 60000 80000 100000 
+
+Step 
+
+> 10 −2
+> 10 −1
+> Error
+
+DeepONet      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −2
+> 10 −1
+> Error
+
+Self-Attention Without SDF With SDF      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −2
+> 10 −1
+> Error
+
+Cross-Attention      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −2
+> 10 −1
+> Error
+
+Hybrid-Attention Figure F.20: Lid-driven cavity flow: test errors versus training steps for different models. SDF denotes the use of signed distance function as an additional input feature. 
+
+60 0 20000 40000 60000 80000 100000 
+
+Step     
+
+> 10 0
+> 4×10 −1
+> 6×10 −1
+> Error
+
+DeepONet      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −1
+> 10 0
+> Error
+
+Self-Attention Without SDF With SDF      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −1
+> 10 0
+> Error
+
+Cross-Attention      
+
+> 020000 40000 60000 80000 100000
+
+Step 
+
+> 10 −1
+> 10 0
+> Error
+
+Hybrid-Attention Figure F.21: Redox flow battery with 5 rods: test errors versus training steps for different models. SDF denotes the use of signed distance function as an additional input feature. 
+
+61 Table F.7: Test errors for the Lid-driven cavity flow and the Redox flow battery problem with and without the signed distance function (SDF) as an additional input feature. 
+
+Model Lid-driven cavity Redox flow battery Without SDF With SDF Without SDF With SDF DeepONet 0.0125 0.0100 0.9884 0.6442 Self-Attention 0.0103 0.0078 0.0629 0.0287 Cross-Attention 0.0071 0.0071 0.0335 0.0297 Hybrid-Attention 0.0073 0.0073 0.0321 0.0214 
+
+Appendix G. Normalization 
+
+For the turbulent airfoil flow problem in Section 3.2, the input variables (x, y, d )
+
+are normalized with the chord length of the airfoil, which is set to 1. The freestream velocity (Uinf , V inf ) as well as the output variables are all normalized in the sense of 
+
+z score normalization, i.e., ˆz = ( z − μz )/σ z , where μz and σz denotes the mean and standard deviation, which are given in Table G.8.  
+
+> Table G.8: Normalization parameters ( zscore) for the turbulent airfoil flow problem.
+
+Var u v p νt Uinf Vinf 
+
+Mean 42.50 9.87 −456 .50 7.97 × 10 −4 61.70 4.93 Std 29.73 31.01 2921 .73 2.91 × 10 −3 17.72 6.33 For Redox flow battery problem in Section Appendix E, the input variables 
+
+(x, y, d ) are normalized with the channel width 100 μm . The input velocity is normal-ized with the mean inlet velocity 5 mm/s. The output variables are all normalized in the sense of z-score normalization, i.e., ˆz = ( z − μz )/σ z , where μz and σz denotes 62 the mean and standard deviation of the variable z, which are manually given in the Table G.9.  
+
+> Table G.9: Normalization parameters ( zscore) for the redox flow battery problem.
+
+Var ϕ− 
+
+> e
+
+η− cR u v p
+
+Mean 0.8963 0.0458 825 0 0 1.54 Std 0.0232 0.0231 33 vin vin 1.80 For jet engine bracket problem in Section Appendix E, the input variables (x, y, z, d ),the non-parametric parameters μ = ( mass, F x, F y, F z ), and the output variables 
+
+(ux, u y, u z , σ vm ) are all normalized in the sense of z score normalization, i.e., ˆz =(z − μz )/σ z , where μz and σz denotes the mean and standard deviation of the vari-able z, which are manually given in the Table G.10.  
+
+> Table G.10: Normalization parameters ( zscore) for the jet engine bracket problem.
+
+Var x y z d mass Fx
+
+Mean 15.02 -54.30 15.49 -1.26 0.63 -13.54 Std 23.12 47.16 13.84 1.77 0.63 16.49 Var Fy Fz ux uy uz σvm 
+
+Mean 8.50 13.06 -8.26e-3 -5.81e-4 0.04 38.37 Std 16.49 11.66 7.66e-2 1.53e-2 0.12 44.80 
+
+References 
+
+[1] P. Benner, S. Gugercin, K. Willcox, A survey of projection-based model reduc-tion methods for parametric dynamical systems, SIAM review 57 (4) (2015) 63 483–531. [2] A. Jameson, Aerodynamic shape optimization using the adjoint method, Lec-tures at the Von Karman Institute, Brussels 6 (2003). [3] Y. Sun, U. Sengupta, M. Juniper, Physics-informed deep learning for simultane-ous surrogate modeling and pde-constrained optimization of an airfoil geometry, Computer Methods in Applied Mechanics and Engineering 411 (2023) 116042. [4] J. Sokolowski, J.-P. Zolésio, Introduction to shape optimization, in: Introduction to Shape Optimization: Shape Sensitivity Analysis, Springer, 1992, pp. 5–12. [5] D. Samadian, I. B. Muhit, N. Dawood, Application of data-driven surrogate models in structural engineering: a literature review, Archives of Computational Methods in Engineering 32 (2) (2025) 735–784. [6] J. Wang, H. Jiang, G. Chen, H. Wang, L. Lu, J. Liu, L. Xing, Integration of multi-physics and machine learning-based surrogate modelling approaches for multi-objective optimization of deformed gdl of pem fuel cells, Energy and AI 14 (2023) 100261. [7] H.-W. Li, L. Wang, J.-N. Liu, Y. Yang, G.-L. Lu, Maximizing power density in proton exchange membrane fuel cells: An integrated optimization framework coupling multi-physics structure models, machine learning, and improved gray wolf optimizer, Fuel 358 (2024) 130351. [8] J. S. Hesthaven, S. Ubbiali, Non-intrusive reduced order modeling of nonlinear problems using neural networks, Journal of Computational Physics 363 (2018) 55–78. 64 [9] Q. Wang, J. S. Hesthaven, D. Ray, Non-intrusive reduced order modeling of unsteady flows using artificial neural networks with application to a combustion problem, Journal of computational physics 384 (2019) 289–307. [10] K. Hornik, M. Stinchcombe, H. White, Multilayer feedforward networks are universal approximators, Neural Networks 2 (5) (1989) 359–366. 
+
+doi:https://doi.org/10.1016/0893-6080(89)90020-8 .URL https://www.sciencedirect.com/science/article/pii/ 0893608089900208 
+
+[11] W. Zhang, C. Zhang, Y. Zhao, Z. Wang, Y. Liu, C. Zhou, Y. Hu, Convolu-tional neural networks-based surrogate model for fast computational fluid dy-namics simulations of indoor airflow distribution, Energy and Buildings 326 (2025) 115020. [12] Y. Hua, C.-H. Yu, Q. Zhao, M.-G. Li, W.-T. Wu, P. Wu, Surrogate modeling of heat transfers of nanofluids in absorbent tubes with fins based on deep con-volutional neural network, International Journal of Heat and Mass Transfer 202 (2023) 123736. [13] Y. Kim, H.-r. Kim, H. Jung, Prt-deeponet: Geometry-aware neural operator for efficient prediction of pore-scale concentration fields, Computers & Geosciences (2025) 106098. [14] L. Lu, P. Jin, G. Pang, Z. Zhang, G. E. Karniadakis, Learning nonlinear oper-ators via deeponet based on the universal approximation theorem of operators, Nature machine intelligence 3 (3) (2021) 218–229. [15] J. He, S. Koric, D. Abueidda, A. Najafi, I. Jasiuk, Geom-deeponet: A point-65 cloud-based deep operator network for field predictions on 3d parameterized ge-ometries, Computer Methods in Applied Mechanics and Engineering 429 (2024) 117130. [16] A. Peyvan, V. Kumar, G. E. Karniadakis, Fusion-deeponet: A data-efficient neural operator for geometry-dependent hypersonic and supersonic flows, arXiv preprint arXiv:2501.01934 (2025). [17] K. Shukla, V. Oommen, A. Peyvan, M. Penwarden, N. Plewacki, L. Bravo, A. Ghoshal, R. M. Kirby, G. E. Karniadakis, Deep neural operators as accu-rate surrogates for shape optimization, Engineering Applications of Artificial Intelligence 129 (2024) 107615. [18] Z. Li, N. Kovachki, K. Azizzadenesheli, B. Liu, K. Bhattacharya, A. Stuart, A. Anandkumar, Fourier neural operator for parametric partial differential equa-tions, arXiv preprint arXiv:2010.08895 (2020). [19] Z. Li, D. Z. Huang, B. Liu, A. Anandkumar, Fourier neural operator with learned deformations for pdes on general geometries, Journal of Machine Learning Re-search 24 (388) (2023) 1–26. [20] B. Bonev, T. Kurth, C. Hundt, J. Pathak, M. Baust, K. Kashinath, A. Anandku-mar, Spherical fourier neural operators: Learning stable dynamics on the sphere, in: International conference on machine learning, PMLR, 2023, pp. 2806–2823. [21] Z. Wu, S. Pan, F. Chen, G. Long, C. Zhang, P. S. Yu, A comprehensive survey on graph neural networks, IEEE transactions on neural networks and learning systems 32 (1) (2020) 4–24. 66 [22] M. Horie, N. Mitsume, Physics-embedded neural networks: Graph neural pde solvers with mixed boundary conditions, Advances in Neural Information Pro-cessing Systems 35 (2022) 23218–23229. [23] C. R. Qi, H. Su, K. Mo, L. J. Guibas, Pointnet: Deep learning on point sets for 3d classification and segmentation, in: Proceedings of the IEEE conference on computer vision and pattern recognition, 2017, pp. 652–660. [24] A. Kashefi, T. Mukerji, Physics-informed pointnet: A deep learning solver for steady-state incompressible flows and thermal fields on multiple sets of irregular geometries, Journal of Computational Physics 468 (2022) 111510. [25] J. Park, N. Kang, Point-deeponet: Predicting nonlinear fields on non-parametric geometries under variable load conditions, Neural Networks (2026) 108560. [26] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, I. Polosukhin, Attention is all you need, Advances in neural infor-mation processing systems 30 (2017). [27] Z. Li, K. Meidani, A. B. Farimani, Transformer for partial differential equations’ operator learning, arXiv preprint arXiv:2205.13671 (2022). [28] S. Wen, A. Kumbhat, L. Lingsch, S. Mousavi, Y. Zhao, P. Chandrashekar, S. Mishra, Geometry aware operator transformer as an efficient and accurate neural surrogate for pdes on arbitrary domains, arXiv preprint arXiv:2505.18781 (2025). [29] Q. Liu, W. Zhong, H. Meidani, D. Abueidda, S. Koric, P. Geubelle, Geometry-informed neural operator transformer for partial differential equations on ar-67 bitrary geometries, Computer Methods in Applied Mechanics and Engineering 451 (2026) 118668. [30] P. Jin, S. Meng, L. Lu, Mionet: Learning multiple-input operators via tensor product, SIAM Journal on Scientific Computing 44 (6) (2022) A3490–A3514. [31] F. Bonnet, J. Mazari, P. Cinnella, P. Gallinari, Airfrans: High fidelity computa-tional fluid dynamics dataset for approximating reynolds-averaged navier–stokes solutions, Advances in Neural Information Processing Systems 35 (2022) 23463– 23478. [32] N. Anand, Finite element and finite volume methods for heat transfer and fluid dynamics, Cambridge University Press, 2022. [33] S. Niu, Y. Liu, J. Wang, H. Song, A decade survey of transfer learning (2010– 2020), IEEE Transactions on Artificial Intelligence 1 (2) (2021) 151–166. [34] S. Goswami, K. Kontolati, M. D. Shields, G. E. Karniadakis, Deep transfer op-erator learning for partial differential equations under conditional shift, Nature Machine Intelligence 4 (12) (2022) 1155–1164. [35] G. I. Parisi, R. Kemker, J. L. Part, C. Kanan, S. Wermter, Continual lifelong learning with neural networks: A review, Neural networks 113 (2019) 54–71. [36] R. Hadsell, D. Rao, A. A. Rusu, R. Pascanu, Embracing change: Continual learning in deep neural networks, Trends in cognitive sciences 24 (12) (2020) 1028–1040. [37] Y. Fu, A. Howard, C. Zeng, Y. Chen, P. Gao, P. Stinis, Physics-guided continual learning for predicting emerging aqueous organic redox flow battery material performance, ACS Energy Letters 9 (6) (2024) 2767–2774. 68 [38] A. Hollas, X. Wei, V. Murugesan, Z. Nie, B. Li, D. Reed, J. Liu, V. Spren-kle, W. Wang, A biomimetic high-capacity phenazine-based anolyte for aqueous organic redox flow batteries, Nature Energy 3 (6) (2018) 508–514. [39] C. Zeng, S. Kim, Y. Chen, Y. Fu, J. Bao, Z. Xu, W. Wang, Characterization of electrochemical behavior for aqueous organic redox flow batteries, Journal of The Electrochemical Society 169 (12) (2022) 120527. [40] S. Hong, Y. Kwon, D. Shin, J. Park, N. Kang, Deepjeb: 3d deep learning-based synthetic jet engine bracket dataset, Journal of Mechanical Design 147 (4) (2025) 041703. [41] S. Cao, Choose a transformer: Fourier or galerkin, Advances in neural informa-tion processing systems 34 (2021) 24924–24940. [42] J. Su, M. Ahmed, Y. Lu, S. Pan, W. Bo, Y. Liu, Roformer: Enhanced trans-former with rotary position embedding, Neurocomputing 568 (2024) 127063. 69

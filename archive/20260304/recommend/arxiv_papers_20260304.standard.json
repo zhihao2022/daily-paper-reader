@@ -1,0 +1,389 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-03-04T19:28:40.602210+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 1,
+    "deep_divecandidates": 0,
+    "deep_cap": 6,
+    "deep_selected": 0,
+    "quick_candidates": 10,
+    "quick_skim_target": 11,
+    "quick_selected": 10
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "2602.01493v1",
+      "title": "OpInf-LLM: Parametric PDE Solving with LLMs via Operator Inference",
+      "abstract": "Solving diverse partial differential equations (PDEs) is fundamental in science and engineering. Large language models (LLMs) have demonstrated strong capabilities in code generation, symbolic reasoning, and tool use, but reliably solving PDEs across heterogeneous settings remains challenging. Prior work on LLM-based code generation and transformer-based foundation models for PDE learning has shown promising advances. However, a persistent trade-off between execution success rate and numerical accuracy arises, particularly when generalization to unseen parameters and boundary conditions is required. In this work, we propose OpInf-LLM, an LLM parametric PDE solving framework based on operator inference. The proposed framework leverages a small amount of solution data to enable accurate prediction of diverse PDE instances, including unseen parameters and configurations, and provides seamless integration with LLMs for natural language specification of PDE solving tasks. Its low computational demands and unified tool interface further enable a high execution success rate across heterogeneous settings. By combining operator inference with LLM capabilities, OpInf-LLM opens new possibilities for generalizable reduced-order modeling in LLM-based PDE solving.",
+      "authors": [
+        "Zhuoyuan Wang",
+        "Hanjiang Hu",
+        "Xiyu Deng",
+        "Saviz Mowlavi",
+        "Yorie Nakahira"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-02-02T00:04:50+00:00",
+      "link": "https://arxiv.org/pdf/2602.01493v1",
+      "tags": [
+        "keyword:SR",
+        "query:SR"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "operator inference for parametric PDE solving using LLMs",
+      "llm_evidence_cn": "利用大语言模型进行参数化偏微分方程求解的算子推断",
+      "llm_evidence": "利用大语言模型进行参数化偏微分方程求解的算子推断",
+      "canonical_evidence": "利用大语言模型进行参数化偏微分方程求解的算子推断",
+      "llm_tldr_en": "Proposes a framework using LLMs and operator inference to solve parametric PDEs in science and engineering.",
+      "llm_tldr_cn": "提出一个结合大语言模型和算子推断的框架，用于求解科学工程中的参数化偏微分方程。",
+      "llm_tldr": "提出一个结合大语言模型和算子推断的框架，用于求解科学工程中的参数化偏微分方程。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "algorithms for scientific equation discovery and modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2601.20097v1",
+      "title": "Kolmogorov-Arnold Networks Applied to Materials Property Prediction",
+      "abstract": "Kolmogorov-Arnold Networks (KANs) were proposed as an alternative to traditional neural network architectures based on multilayer perceptrons (MLP-NNs). The potential advantages of KANs over MLP-NNs, including significantly enhanced parameter efficiency and increased interpretability, make them a promising new regression model in supervised machine learning problems. We apply KANs to prediction of materials properties, focusing on a diverse set of 33 properties consisting of both experimental and calculated data. We compare the KAN results to random forest, a method that generally gives excellent performance on a wide range of properties predictions with very little optimization. The KANs were worse, on par, or better than random forest about 35%, 60%, and 5% of the time, respectively, and KANs are in practice more difficult to fit than random forest. By tuning the network architecture, we found property fits often resulted in 10-20% lower errors compared to the standard KAN, and typically gave results comparable to random forest. In the specific context of predicting reactor pressure vessel transition temperature shifts, we explored the parameter efficiency and the interpretable power of KANs by comparing predictions of simple KAN models (e.g., < 50 parameters) and closed-form expressions suggested by the KAN fits to previously published deep MLP-NNs and hand-tuned models created using domain expertise of embrittlement physics. We found that simple KAN models and the resulting closed-form expressions produce prediction errors on par with established hand-tuned models with a comparable number of parameters, and required essentially no domain expertise to produce. These findings reinforce the potential applicability of KANs for machine learning in materials science and suggest that KANs should be explored as a regression model for prediction of materials properties.",
+      "authors": [
+        "Ryan Jacobs",
+        "Lane E. Schultz",
+        "Dane Morgan"
+      ],
+      "primary_category": "cond-mat.mtrl-sci",
+      "categories": [
+        "cond-mat.mtrl-sci"
+      ],
+      "published": "2026-01-27T22:31:30+00:00",
+      "link": "https://arxiv.org/pdf/2601.20097v1",
+      "tags": [
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "interpretability and parameter efficiency of KANs as regression models",
+      "llm_evidence_cn": "KAN作为回归模型的可解释性和参数效率",
+      "llm_evidence": "KAN作为回归模型的可解释性和参数效率",
+      "canonical_evidence": "KAN作为回归模型的可解释性和参数效率",
+      "llm_tldr_en": "Evaluates Kolmogorov-Arnold Networks for materials property prediction, highlighting interpretability benefits.",
+      "llm_tldr_cn": "评估了KAN在材料属性预测中的应用，强调了其可解释性优势。",
+      "llm_tldr": "评估了KAN在材料属性预测中的应用，强调了其可解释性优势。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "interpretability and transparency of symbolic regression models",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2602.16954v2",
+      "title": "Neural Proposals, Symbolic Guarantees: Neuro-Symbolic Graph Generation with Hard Constraints",
+      "abstract": "We challenge black-box purely deep neural approaches for molecules and graph generation, which are limited in controllability and lack formal guarantees. We introduce Neuro-Symbolic Graph Generative Modeling (NSGGM), a neurosymbolic framework that reapproaches molecule generation as a scaffold and interaction learning task with symbolic assembly. An autoregressive neural model proposes scaffolds and refines interaction signals, and a CPU-efficient SMT solver constructs full graphs while enforcing chemical validity, structural rules, and user-specific constraints, yielding molecules that are correct by construction and interpretable control that pure neural methods cannot provide. NSGGM delivers strong performance on both unconstrained generation and constrained generation tasks, demonstrating that neuro-symbolic modeling can match state-of-the-art generative performance while offering explicit controllability and guarantees. To evaluate more nuanced controllability, we also introduce a Logical-Constraint Molecular Benchmark, designed to test strict hard-rule satisfaction in workflows that require explicit, interpretable specifications together with verifiable compliance.",
+      "authors": [
+        "Chuqin Geng",
+        "Li Zhang",
+        "Mark Zhang",
+        "Haolin Ye",
+        "Ziyu Zhao",
+        "Xujie Si"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-02-18T23:37:15+00:00",
+      "link": "https://arxiv.org/pdf/2602.16954v2",
+      "tags": [
+        "keyword:SR",
+        "query:SR"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "neuro-symbolic framework enforcing structural rules and user-specific constraints",
+      "llm_evidence_cn": "强制执行结构规则和用户特定约束的神经符号框架",
+      "llm_evidence": "强制执行结构规则和用户特定约束的神经符号框架",
+      "canonical_evidence": "强制执行结构规则和用户特定约束的神经符号框架",
+      "llm_tldr_en": "Combines neural models with symbolic solvers to generate graphs that satisfy hard physical and chemical constraints.",
+      "llm_tldr_cn": "结合神经网络与符号求解器，生成满足硬性物理化学约束的可解释图结构。",
+      "llm_tldr": "结合神经网络与符号求解器，生成满足硬性物理化学约束的可解释图结构。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "incorporating physical constraints into symbolic regression",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2602.00266v1",
+      "title": "Complete Identification of Deep ReLU Neural Networks by Many-Valued Logic",
+      "abstract": "Deep ReLU neural networks admit nontrivial functional symmetries: vastly different architectures and parameters (weights and biases) can realize the same function. We address the complete identification problem -- given a function f, deriving the architecture and parameters of all feedforward ReLU networks giving rise to f. We translate ReLU networks into Lukasiewicz logic formulae, and effect functional equivalent network transformations through algebraic rewrites governed by the logic axioms. A compositional norm form is proposed to facilitate the mapping from Lukasiewicz logic formulae back to ReLU networks. Using Chang's completeness theorem, we show that for every functional equivalence class, all ReLU networks in that class are connected by a finite set of symmetries corresponding to the finite set of axioms of Lukasiewicz logic. This idea is reminiscent of Shannon's seminal work on switching circuit design, where the circuits are translated into Boolean formulae, and synthesis is effected by algebraic rewriting governed by Boolean logic axioms.",
+      "authors": [
+        "Yani Zhang",
+        "Helmut Bölcskei"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-01-30T19:39:55+00:00",
+      "link": "https://arxiv.org/pdf/2602.00266v1",
+      "tags": [
+        "keyword:SR",
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "translating neural networks into logic formulae for functional equivalence",
+      "llm_evidence_cn": "将神经网络转化为逻辑公式以实现功能等效",
+      "llm_evidence": "将神经网络转化为逻辑公式以实现功能等效",
+      "canonical_evidence": "将神经网络转化为逻辑公式以实现功能等效",
+      "llm_tldr_en": "Addresses the identification of ReLU networks by translating them into Lukasiewicz logic formulae.",
+      "llm_tldr_cn": "通过将ReLU网络转化为逻辑公式来解决其识别和等效性问题。",
+      "llm_tldr": "通过将ReLU网络转化为逻辑公式来解决其识别和等效性问题。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "comparison between symbolic regression and neural networks",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2602.22055v1",
+      "title": "Physics-Informed Machine Learning for Vessel Shaft Power and Fuel Consumption Prediction: Interpretable KAN-based Approach",
+      "abstract": "Accurate prediction of shaft rotational speed, shaft power, and fuel consumption is crucial for enhancing operational efficiency and sustainability in maritime transportation. Conventional physics-based models provide interpretability but struggle with real-world variability, while purely data-driven approaches achieve accuracy at the expense of physical plausibility. This paper introduces a Physics-Informed Kolmogorov-Arnold Network (PI-KAN), a hybrid method that integrates interpretable univariate feature transformations with a physics-informed loss function and a leakage-free chained prediction pipeline. Using operational and environmental data from five cargo vessels, PI-KAN consistently outperforms the traditional polynomial method and neural network baselines. The model achieves the lowest mean absolute error (MAE) and root mean squared error (RMSE), and the highest coefficient of determination (R^2) for shaft power and fuel consumption across all vessels, while maintaining physically consistent behavior. Interpretability analysis reveals rediscovery of domain-consistent dependencies, such as cubic-like speed-power relationships and cosine-like wave and wind effects. These results demonstrate that PI-KAN achieves both predictive accuracy and interpretability, offering a robust tool for vessel performance monitoring and decision support in operational settings.",
+      "authors": [
+        "Hamza Haruna Mohammed",
+        "Dusica Marijan",
+        "Arnbjørn Maressa"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "published": "2026-02-25T16:06:28+00:00",
+      "link": "https://arxiv.org/pdf/2602.22055v1",
+      "tags": [
+        "keyword:SR",
+        "query:SR"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Interpretable KAN-based approach for physical modeling",
+      "llm_evidence_cn": "基于KAN的可解释物理建模方法",
+      "llm_evidence": "基于KAN的可解释物理建模方法",
+      "canonical_evidence": "基于KAN的可解释物理建模方法",
+      "llm_tldr_en": "Introduces a physics-informed KAN for interpretable and accurate vessel power prediction.",
+      "llm_tldr_cn": "引入物理感知的KAN网络，用于可解释且准确的船舶动力预测。",
+      "llm_tldr": "引入物理感知的KAN网络，用于可解释且准确的船舶动力预测。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "interpretability and transparency of symbolic regression models",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2602.03247v1",
+      "title": "Physics informed learning of orthogonal features with applications in solving partial differential equations",
+      "abstract": "The random feature method (RFM) constructs approximation spaces by initializing features from generic distributions, which provides universal approximation properties to solve general partial differential equations. However, such standard initializations lack awareness of the underlying physical laws and geometry, which limits approximation. In this work, we propose the Physics-Driven Orthogonal Feature Method (PD-OFM), a framework for constructing feature representations that are explicitly tailored to both the differential operator and the computational domain by pretraining features using physics-informed objectives together with orthogonality regularization. This pretraining strategy yields nearly orthogonal feature bases. We provide both theoretical and empirical evidence that physics-informed pretraining improves the approximation capability of the learned feature space. When employed to solve Helmholtz, Poisson, wave, and Navier-Stokes equations, the proposed method achieves residual errors 2-3 orders of magnitude lower than those of comparable methods. Furthermore, the orthogonality regularization improves transferability, enabling pretrained features to generalize effectively across different source terms and domain geometries for the same PDE.",
+      "authors": [
+        "Qianxing Jia",
+        "Dong Wang"
+      ],
+      "primary_category": "math.NA",
+      "categories": [
+        "math.NA"
+      ],
+      "published": "2026-02-03T08:27:17+00:00",
+      "link": "https://arxiv.org/pdf/2602.03247v1",
+      "tags": [
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "physics-informed features for solving equations",
+      "llm_evidence_cn": "用于求解方程的物理信息特征",
+      "llm_evidence": "用于求解方程的物理信息特征",
+      "canonical_evidence": "用于求解方程的物理信息特征",
+      "llm_tldr_en": "Pretrains orthogonal features using physics-informed objectives to improve PDE solving accuracy.",
+      "llm_tldr_cn": "利用物理信息目标预训练正交特征，以提高偏微分方程求解的精度。",
+      "llm_tldr": "利用物理信息目标预训练正交特征，以提高偏微分方程求解的精度。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "incorporating physical constraints into symbolic regression",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.01459v1",
+      "title": "PhysFormer: A Physics-Embedded Generative Model for Physically Self-Consistent Spectral Synthesis",
+      "abstract": "In scientific and engineering domains, modeling high-dimensional complex systems governed by partial differential equations (PDEs) remains challenging in terms of physical consistency and numerical stability. However, existing approaches, such as physics-informed neural networks (PINNs), typically rely on known physical fields or coefficients and enforce physical constraints via external loss functions, which can lead to training instability and make it difficult to handle high-dimensional or unobservable scenarios. To this end, we propose PhysFormer, a generative modeling framework that is self-consistent at both the data and physical levels. PhysFormer leverages a low-dimensional, physically interpretable latent space to learn key physical quantities directly from data without requiring known high-dimensional physical field parameters, and embeds the physical process of radiative flux generation within the network to ensure the physical consistency of the generated spectra. In high-dimensional, degenerate inversion tasks, PhysFormer constrains generation within physical limits and enhances spectral fidelity and inversion stability under varying signal-to-noise ratios (SNRs). More broadly, this approach shifts the physical processes from external loss functions into the generative mechanism itself, providing a physically consistent generative modeling paradigm for complex systems involving unknown or unobservable physical quantities.",
+      "authors": [
+        "Siqi Wang",
+        "Mengmeng Zhang",
+        "Yude Bu",
+        "Chaozhou Mou"
+      ],
+      "primary_category": "astro-ph.IM",
+      "categories": [
+        "astro-ph.IM",
+        "cs.LG"
+      ],
+      "published": "2026-03-02T05:17:41+00:00",
+      "link": "https://arxiv.org/pdf/2603.01459v1",
+      "tags": [
+        "query:SR"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Physics-embedded generative model for self-consistent modeling",
+      "llm_evidence_cn": "物理嵌入生成模型用于自洽建模",
+      "llm_evidence": "物理嵌入生成模型用于自洽建模",
+      "canonical_evidence": "物理嵌入生成模型用于自洽建模",
+      "llm_tldr_en": "Proposes a generative framework that enforces physical consistency in high-dimensional systems.",
+      "llm_tldr_cn": "提出了一种在处理高维系统时强制执行物理自洽性的生成式建模框架。",
+      "llm_tldr": "提出了一种在处理高维系统时强制执行物理自洽性的生成式建模框架。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "incorporating physical constraints into symbolic regression",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2602.08849v1",
+      "title": "Cutting Through the Noise: On-the-fly Outlier Detection for Robust Training of Machine Learning Interatomic Potentials",
+      "abstract": "The accuracy of machine learning interatomic potentials suffers from reference data that contains numerical noise. Often originating from unconverged or inconsistent electronic-structure calculations, this noise is challenging to identify. Existing mitigation strategies such as manual filtering or iterative refinement of outliers, require either substantial expert effort or multiple expensive retraining cycles, making them difficult to scale to large datasets. Here, we introduce an on-the-fly outlier detection scheme that automatically down-weights noisy samples, without requiring additional reference calculations. By tracking the loss distribution via an exponential moving average, this unsupervised method identifies outliers throughout a single training run. We show that this approach prevents overfitting and matches the performance of iterative refinement baselines with significantly reduced overhead. The method's effectiveness is demonstrated by recovering accurate physical observables for liquid water from unconverged reference data, including diffusion coefficients. Furthermore, we validate its scalability by training a foundation model for organic chemistry on the SPICE dataset, where it reduces energy errors by a factor of three. This framework provides a simple, automated solution for training robust models on imperfect datasets across dataset sizes.",
+      "authors": [
+        "Terry C. W. Lam",
+        "Niamh O'Neill",
+        "Christoph Schran",
+        "Lars L. Schaaf"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cond-mat.mtrl-sci",
+        "cs.LG",
+        "physics.chem-ph"
+      ],
+      "published": "2026-02-09T16:16:22+00:00",
+      "link": "https://arxiv.org/pdf/2602.08849v1",
+      "tags": [
+        "keyword:SR",
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "on-the-fly outlier detection for robust training",
+      "llm_evidence_cn": "用于鲁棒训练的在线离群点检测",
+      "llm_evidence": "用于鲁棒训练的在线离群点检测",
+      "canonical_evidence": "用于鲁棒训练的在线离群点检测",
+      "llm_tldr_en": "Introduces an unsupervised outlier detection scheme to handle noisy data in machine learning potentials.",
+      "llm_tldr_cn": "引入一种无监督离群点检测方案，用于处理机器学习势能中的噪声数据。",
+      "llm_tldr": "引入一种无监督离群点检测方案，用于处理机器学习势能中的噪声数据。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "how to handle noisy data in symbolic regression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2602.11626v1",
+      "title": "ArGEnT: Arbitrary Geometry-encoded Transformer for Operator Learning",
+      "abstract": "Learning solution operators for systems with complex, varying geometries and parametric physical settings is a central challenge in scientific machine learning. In many-query regimes such as design optimization, control and inverse problems, surrogate modeling must generalize across geometries while allowing flexible evaluation at arbitrary spatial locations. In this work, we propose Arbitrary Geometry-encoded Transformer (ArGEnT), a geometry-aware attention-based architecture for operator learning on arbitrary domains. ArGEnT employs Transformer attention mechanisms to encode geometric information directly from point-cloud representations with three variants-self-attention, cross-attention, and hybrid-attention-that incorporates different strategies for incorporating geometric features. By integrating ArGEnT into DeepONet as the trunk network, we develop a surrogate modeling framework capable of learning operator mappings that depend on both geometric and non-geometric inputs without the need to explicitly parametrize geometry as a branch network input. Evaluation on benchmark problems spanning fluid dynamics, solid mechanics and electrochemical systems, we demonstrate significantly improved prediction accuracy and generalization performance compared with the standard DeepONet and other existing geometry-aware saurrogates. In particular, the cross-attention transformer variant enables accurate geometry-conditioned predictions with reduced reliance on signed distance functions. By combining flexible geometry encoding with operator-learning capabilities, ArGEnT provides a scalable surrogate modeling framework for optimization, uncertainty quantification, and data-driven modeling of complex physical systems.",
+      "authors": [
+        "Wenqian Chen",
+        "Yucheng Fu",
+        "Michael Penwarden",
+        "Pratanu Roy",
+        "Panos Stinis"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "physics.chem-ph",
+        "physics.comp-ph",
+        "physics.flu-dyn"
+      ],
+      "published": "2026-02-12T06:22:59+00:00",
+      "link": "https://arxiv.org/pdf/2602.11626v1",
+      "tags": [
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Transformer architecture for operator learning in physics",
+      "llm_evidence_cn": "用于物理算子学习的Transformer架构",
+      "llm_evidence": "用于物理算子学习的Transformer架构",
+      "canonical_evidence": "用于物理算子学习的Transformer架构",
+      "llm_tldr_en": "Introduces a geometry-aware Transformer for learning solution operators of physical systems.",
+      "llm_tldr_cn": "引入了一种几何感知的Transformer，用于学习物理系统的解算子。",
+      "llm_tldr": "引入了一种几何感知的Transformer，用于学习物理系统的解算子。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "neural symbolic regression using transformer architectures",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2602.14737v1",
+      "title": "Parameter-Minimal Neural DE Solvers via Horner Polynomials",
+      "abstract": "We propose a parameter-minimal neural architecture for solving differential equations by restricting the hypothesis class to Horner-factorized polynomials, yielding an implicit, differentiable trial solution with only a small set of learnable coefficients. Initial conditions are enforced exactly by construction by fixing the low-order polynomial degrees of freedom, so training focuses solely on matching the differential-equation residual at collocation points. To reduce approximation error without abandoning the low-parameter regime, we introduce a piecewise (\"spline-like\") extension that trains multiple small Horner models on subintervals while enforcing continuity (and first-derivative continuity) at segment boundaries. On illustrative ODE benchmarks and a heat-equation example, Horner networks with tens (or fewer) parameters accurately match the solution and its derivatives and outperform small MLP and sinusoidal-representation baselines under the same training settings, demonstrating a practical accuracy-parameter trade-off for resource-efficient scientific modeling.",
+      "authors": [
+        "T. Matulić",
+        "D. Seršić"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "eess.SP"
+      ],
+      "published": "2026-02-16T13:29:38+00:00",
+      "link": "https://arxiv.org/pdf/2602.14737v1",
+      "tags": [
+        "query:SR"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "polynomial solvers for differential equations",
+      "llm_evidence_cn": "微分方程的多项式求解器",
+      "llm_evidence": "微分方程的多项式求解器",
+      "canonical_evidence": "微分方程的多项式求解器",
+      "llm_tldr_en": "Uses Horner-factorized polynomials as a parameter-minimal neural architecture to solve differential equations.",
+      "llm_tldr_cn": "使用霍纳分解多项式作为参数极小化神经架构来求解微分方程。",
+      "llm_tldr": "使用霍纳分解多项式作为参数极小化神经架构来求解微分方程。",
+      "llm_tags": [
+        "query:sr"
+      ],
+      "matched_query_tag": "query:sr",
+      "matched_query_text": "algorithms for scientific equation discovery and modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}
