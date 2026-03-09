@@ -17,7 +17,7 @@
 这个项目的大多数入口都集中在左下角的小齿轮里，后台管理、检索配置、工作流触发等功能都在这里。
 
 <p align="center">
-  <img src="docs/tutorial/tutorial-entry-panel.png" alt="使用入口面板" width="88%" />
+  <img src="docs/tutorial/tutorial-entry-panel.png" alt="使用入口面板" width="50%" />
 </p>
 
 进入后台管理面板后，点击“新增”可以创建一个新的专题词条。
@@ -33,7 +33,7 @@
 保存查询后，记得再保存一次词条。完成后，就可以点击右侧的搜寻论文区域，发起第一次论文检索。
 
 <p align="center">
-  <img src="docs/tutorial/tutorial-first-search.png" alt="首次搜寻论文" width="88%" />
+  <img src="docs/tutorial/tutorial-first-search.png" alt="首次搜寻论文" width="50%" />
 </p>
 
 ---
